@@ -1,0 +1,36 @@
+{
+  "name": "@macnason/stint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "import": "./dist/schema.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./presets.css": "./dist/presets.css"
+  },
+  "scripts": {
+    "build": "vite build && node -e \"const fs=require('node:fs');for(const f of['styles.css','presets.css'])fs.copyFileSync('src/'+f,'dist/'+f)\"",
+    "test": "vitest run --config ../../vitest.workspace.ts packages/stint/test"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "motion": "^12.42.2"
+  }
+}

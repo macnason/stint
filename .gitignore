@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build output
+packages/*/dist/
+*.tsbuildinfo
+
+# package artifacts
+*.tgz
+
+# test output
+coverage/
+test-results/
+playwright-report/
+
+# release gate evidence (regenerated per run by scripts/run-release-gate.mjs)
+.context/
+
+# misc
+.DS_Store
+.env*
+*.pem
+
+# editor / local agent tooling
+.vscode/
+.idea/
+.firecrawl/
+.opencode/

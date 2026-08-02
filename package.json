@@ -1,0 +1,51 @@
+{
+  "name": "stint-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Stint — a tactile React timeline for presenting career history.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:packages": "npm run build --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run --config vitest.workspace.ts",
+    "test:packages": "vitest run --config vitest.workspace.ts packages",
+    "test:policy": "vitest run --config vitest.workspace.ts tests/package",
+    "test:release-policy": "vitest run --config vitest.workspace.ts tests/package/release-policy.test.ts tests/package/stint-release.test.ts",
+    "package:dry-run": "npm pack --workspace packages/stint --dry-run && npm pack --workspace packages/stint-cli --dry-run",
+    "release:verify:u7": "node scripts/run-release-gate.mjs --gate u7 -- npm exec -- vitest run --config vitest.workspace.ts packages/stint-cli/test/packed-cli.test.ts",
+    "release:verify:u11": "node scripts/run-release-gate.mjs --gate u11 -- npm exec -- vitest run --config vitest.workspace.ts tests/package/packed-consumers.test.ts",
+    "release:preflight:local": "node scripts/stint-release-preflight.mjs --channel local",
+    "release:preflight": "node scripts/stint-release-preflight.mjs",
+    "changeset": "changeset",
+    "version:packages": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.1",
+    "@eslint/js": "^9.18.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "axe-core": "^4.12.1",
+    "eslint": "^9",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.8.0",
+    "jsdom": "^27.2.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "typescript": "^5",
+    "typescript-eslint": "^8.20.0",
+    "vite": "^8.1.5",
+    "vite-plugin-dts": "^5.0.3",
+    "vitest": "^4.1.10"
+  }
+}

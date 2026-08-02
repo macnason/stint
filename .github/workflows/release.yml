@@ -1,0 +1,123 @@
+name: Release Stint
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Publish next or promote the verified candidate to latest
+        required: true
+        type: choice
+        options:
+          - next
+          - latest
+      approve_latest:
+        description: Explicitly approve latest promotion
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    if: github.event_name == 'workflow_dispatch' && github.ref_protected == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: stint-npm-release
+    permissions:
+      contents: read
+    outputs:
+      artifact-digest: ${{ steps.candidate-artifact.outputs.artifact-digest }}
+    env:
+      GITHUB_REF_PROTECTED: ${{ github.ref_protected }}
+      STINT_GATE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-candidate
+      STINT_NPM_OWNER: ${{ vars.STINT_NPM_OWNER }}
+      STINT_TRUSTED_PUBLISHER: ${{ vars.STINT_TRUSTED_PUBLISHER }}
+      STINT_PROTECTED_ENVIRONMENT: stint-npm-release
+      STINT_PUBLIC_RUNTIME_NPM_URL: ${{ vars.STINT_PUBLIC_RUNTIME_NPM_URL }}
+      STINT_PUBLIC_CLI_NPM_URL: ${{ vars.STINT_PUBLIC_CLI_NPM_URL }}
+      STINT_PUBLIC_SOURCE_URL: ${{ vars.STINT_PUBLIC_SOURCE_URL }}
+      STINT_PUBLIC_DOCS_URL: ${{ vars.STINT_PUBLIC_DOCS_URL }}
+      STINT_LATEST_APPROVED: ${{ inputs.approve_latest }}
+    steps:
+      - name: Check out protected ref
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test --workspaces --if-present
+      - run: npm run test:policy
+      - run: npm run build --workspaces --if-present
+      - run: npm run package:dry-run
+      - run: npm run release:verify:u7
+      - run: npm run release:verify:u11
+      - name: Enforce remote release policy
+        run: npm run release:preflight -- --channel "${{ inputs.channel }}"
+      - name: Pack verified candidate
+        run: |
+          mkdir -p .context/candidate .context/pack-results
+          npm pack --workspace packages/stint --pack-destination .context/candidate --json > .context/pack-results/runtime.json
+          npm pack --workspace packages/stint-cli --pack-destination .context/candidate --json > .context/pack-results/cli.json
+          node scripts/prepare-release-candidate.mjs \
+            --channel "${{ inputs.channel }}" \
+            --directory .context/candidate \
+            --runtime-pack .context/pack-results/runtime.json \
+            --cli-pack .context/pack-results/cli.json
+      - name: Upload immutable release candidate
+        id: candidate-artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stint-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .context/candidate/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish:
+    needs: candidate
+    if: github.event_name == 'workflow_dispatch' && github.ref_protected == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: stint-npm-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Set up trusted-publishing Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24
+      - name: Download verified release candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: stint-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-candidate
+      - name: Verify candidate manifest and bytes
+        working-directory: release-candidate
+        env:
+          EXPECTED_ARTIFACT_DIGEST: ${{ needs.candidate.outputs.artifact-digest }}
+          EXPECTED_CHANNEL: ${{ inputs.channel }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-candidate
+        run: |
+          test "${#EXPECTED_ARTIFACT_DIGEST}" = "64"
+          sha256sum --check release-candidate.sha256
+          test "$(jq -r .schemaVersion release-candidate.json)" = "1"
+          test "$(jq -r .channel release-candidate.json)" = "$EXPECTED_CHANNEL"
+          test "$(jq -r .commit release-candidate.json)" = "$EXPECTED_COMMIT"
+          test "$(jq -r .repository release-candidate.json)" = "$EXPECTED_REPOSITORY"
+          test "$(jq -r .runId release-candidate.json)" = "$EXPECTED_RUN_ID"
+          node -e 'const [major, minor] = process.argv[1].split(".").map(Number); if (major < 11 || (major === 11 && minor < 5)) process.exit(1)' "$(npm --version)"
+      - name: Publish or promote atomically
+        working-directory: release-candidate
+        run: node stint-release.mjs --channel "${{ inputs.channel }}" --manifest release-candidate.json

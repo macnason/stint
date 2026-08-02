@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      STINT_GATE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-ci
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test --workspaces --if-present
+      - run: npm run test:policy
+      - run: npm run build --workspaces --if-present
+      - run: npm run package:dry-run
+      # test:policy above already runs the packed-consumer suite. The U11 gate
+      # script exists for release.yml, which needs the recorded evidence file;
+      # running it here too would repack and rebuild every fixture a second time.
+      - name: Verify packed CLI gate (U7)
+        run: npm run release:verify:u7

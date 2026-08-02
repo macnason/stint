@@ -1,0 +1,30 @@
+/*
+ * Optional Stint theme presets.
+ *
+ * Activated by `data-stint-theme="light"` or `data-stint-theme="dark"` on the
+ * component or any ancestor. Absence of the attribute means fully inherited
+ * host styling. Rules live in a low-priority cascade layer so any unlayered
+ * consumer custom property always wins.
+ */
+
+@layer stint-presets {
+  [data-stint-theme="light"] .stint,
+  .stint[data-stint-theme="light"] {
+    color: #181818;
+    --stint-accent: #181818;
+    --stint-ruler: rgba(0, 0, 0, 0.14);
+    --stint-muted: rgba(0, 0, 0, 0.55);
+    --stint-focus: #181818;
+    --stint-label-active: #181818;
+  }
+
+  [data-stint-theme="dark"] .stint,
+  .stint[data-stint-theme="dark"] {
+    color: #f5f5f5;
+    --stint-accent: #f5f5f5;
+    --stint-ruler: rgba(255, 255, 255, 0.2);
+    --stint-muted: rgba(255, 255, 255, 0.6);
+    --stint-focus: #f5f5f5;
+    --stint-label-active: #ffffff;
+  }
+}
