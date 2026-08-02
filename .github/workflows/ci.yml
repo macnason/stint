@@ -26,6 +26,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Warm npm cache for offline consumer installs
+        run: |
+          node -e "const p=require('./packages/stint/package.json'); for (const [name, range] of Object.entries(p.dependencies||{})) console.log(name+'@'+range)" \
+            | xargs -r -n1 npm cache add
       - run: npm run lint
       - run: npm run build --workspaces --if-present
       - run: npm run test --workspaces --if-present
