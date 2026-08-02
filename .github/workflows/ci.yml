@@ -28,8 +28,17 @@ jobs:
       - run: npm ci
       - name: Warm npm cache for offline consumer installs
         run: |
-          node -e "const p=require('./packages/stint/package.json'); for (const [name, range] of Object.entries(p.dependencies||{})) console.log(name+'@'+range)" \
-            | xargs -r -n1 npm cache add
+          specs=$(node -e "
+            for (const path of ['./packages/stint/package.json', './packages/stint-cli/package.json']) {
+              const deps = require(path).dependencies || {};
+              for (const [name, range] of Object.entries(deps)) {
+                if (!name.startsWith('@macnason/')) console.log(name + '@' + range);
+              }
+            }
+          ")
+          warmdir=$(mktemp -d)
+          (cd "$warmdir" && npm init -y >/dev/null && npm install --no-save --package-lock=false $specs)
+          rm -rf "$warmdir"
       - run: npm run lint
       - run: npm run build --workspaces --if-present
       - run: npm run test --workspaces --if-present
