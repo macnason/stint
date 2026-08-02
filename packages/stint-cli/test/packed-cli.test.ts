@@ -34,7 +34,7 @@ beforeAll(() => {
     packedDirectory,
     tarballs.find((name) => /^macnason-stint-cli-/.test(name))!,
   );
-});
+}, 60_000);
 
 afterAll(() => {
   for (const directory of temporaryDirectories.splice(0)) {

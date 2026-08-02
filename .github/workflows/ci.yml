@@ -27,9 +27,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run build --workspaces --if-present
       - run: npm run test --workspaces --if-present
       - run: npm run test:policy
-      - run: npm run build --workspaces --if-present
       - run: npm run package:dry-run
       # test:policy above already runs the packed-consumer suite. The U11 gate
       # script exists for release.yml, which needs the recorded evidence file;
