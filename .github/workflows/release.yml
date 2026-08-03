@@ -53,9 +53,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      # Build first: the CLI imports @macworks/stint/schema, which resolves into
+      # the runtime's dist. Testing before building fails on a clean checkout.
+      - run: npm run build --workspaces --if-present
       - run: npm run test --workspaces --if-present
       - run: npm run test:policy
-      - run: npm run build --workspaces --if-present
       - run: npm run package:dry-run
       - run: npm run release:verify:u7
       - run: npm run release:verify:u11

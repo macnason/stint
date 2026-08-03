@@ -47,6 +47,23 @@ describe("release workflow authority", () => {
     expectUnversionedActionsToBeAbsent(workflow);
   });
 
+  // The CLI imports @macworks/stint/schema, which resolves into the runtime's
+  // dist. Any workflow that tests before building fails on a clean checkout.
+  // ci.yml was fixed for this once; release.yml was not, and the bug only
+  // surfaced on a release dispatch.
+  it.each([".github/workflows/ci.yml", ".github/workflows/release.yml"])(
+    "builds workspaces before testing them in %s",
+    (path) => {
+      const workflow = read(path);
+      const build = workflow.indexOf("npm run build --workspaces --if-present");
+      const test = workflow.indexOf("npm run test --workspaces --if-present");
+
+      expect(build, "workflow must build workspaces").toBeGreaterThan(-1);
+      expect(test, "workflow must test workspaces").toBeGreaterThan(-1);
+      expect(build, "build must precede test").toBeLessThan(test);
+    },
+  );
+
   it("keeps build and lifecycle code outside the OIDC publishing job", () => {
     const workflow = read(".github/workflows/release.yml");
     const publishJob = workflow.slice(workflow.indexOf("\n  publish:"));
