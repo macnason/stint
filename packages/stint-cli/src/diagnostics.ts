@@ -1,4 +1,4 @@
-import type { DiagnosticCode, StintDiagnostic } from "@macnason/stint/schema";
+import type { DiagnosticCode, StintDiagnostic } from "@macnas/stint/schema";
 
 export type CliErrorCode =
   | "E_COMMAND"

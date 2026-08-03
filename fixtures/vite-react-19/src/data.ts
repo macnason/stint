@@ -1,4 +1,4 @@
-import type { StintConfig } from "@macnason/stint/schema";
+import type { StintConfig } from "@macnas/stint/schema";
 
 /** Clearly fictional demo career data — no real person is described. */
 export const fixtureConfig: StintConfig = {

@@ -1,8 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { Stint } from "@macnason/stint";
-import "@macnason/stint/styles.css";
-import "@macnason/stint/presets.css";
+import { Stint } from "@macnas/stint";
+import "@macnas/stint/styles.css";
+import "@macnas/stint/presets.css";
 
 import { fixtureConfig } from "./data";
 

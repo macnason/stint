@@ -1,4 +1,4 @@
-import type { StintConfig, StintExperience, StintRole } from "@macnason/stint/schema";
+import type { StintConfig, StintExperience, StintRole } from "@macnas/stint/schema";
 
 import {
   assertValidConfig,

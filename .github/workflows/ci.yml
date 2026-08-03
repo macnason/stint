@@ -32,7 +32,7 @@ jobs:
             for (const path of ['./packages/stint/package.json', './packages/stint-cli/package.json']) {
               const deps = require(path).dependencies || {};
               for (const [name, range] of Object.entries(deps)) {
-                if (!name.startsWith('@macnason/')) console.log(name + '@' + range);
+                if (!name.startsWith('@macnas/')) console.log(name + '@' + range);
               }
             }
           ")

@@ -7,8 +7,8 @@ body:
     attributes:
       label: Package
       options:
-        - "@macnason/stint"
-        - "@macnason/stint-cli"
+        - "@macnas/stint"
+        - "@macnas/stint-cli"
         - Not sure
     validations:
       required: true

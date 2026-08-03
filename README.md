@@ -8,8 +8,8 @@ This repository holds two packages, versioned together:
 
 | Package | What it is |
 | --- | --- |
-| [`@macnason/stint`](packages/stint) | The React component, schema, and timeline utilities |
-| [`@macnason/stint-cli`](packages/stint-cli) | Authoring and import tooling for career data |
+| [`@macnas/stint`](packages/stint) | The React component, schema, and timeline utilities |
+| [`@macnas/stint-cli`](packages/stint-cli) | Authoring and import tooling for career data |
 
 > **Not yet published.** Both packages carry the `1.0.0-next.0` candidate
 > version and are ready to publish, but nothing has been pushed to npm yet: the
@@ -73,7 +73,7 @@ Until the packages are published, a local consumer points at this checkout:
 ```jsonc
 {
   "dependencies": {
-    "@macnason/stint": "file:../stint/packages/stint"
+    "@macnas/stint": "file:../stint/packages/stint"
   }
 }
 ```

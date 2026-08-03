@@ -1,4 +1,4 @@
-import type { MonthString } from "@macnason/stint/schema";
+import type { MonthString } from "@macnas/stint/schema";
 
 import {
   currentUtcMonth,

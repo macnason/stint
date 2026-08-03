@@ -1,5 +1,5 @@
 import { isAlias, parseDocument } from "yaml";
-import type { StintConfig } from "@macnason/stint/schema";
+import type { StintConfig } from "@macnas/stint/schema";
 
 import { CliError } from "../diagnostics.js";
 import { decodeUtf8, type ImportResult } from "./json.js";

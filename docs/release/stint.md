@@ -3,7 +3,7 @@
 Candidate version: `1.0.0-next.0`
 
 Stint is not remotely releasable yet. Package identity is now resolved: both manifests
-are named `@macnason/stint` and `@macnason/stint-cli`, are public at `1.0.0-next.0`,
+are named `@macnas/stint` and `@macnas/stint-cli`, are public at `1.0.0-next.0`,
 and carry MIT license metadata plus `publishConfig.access: public`. What remains
 unresolved is environmental — the npm owner, the trusted publisher, the protected
 environment, and (for `latest` only) the public source and docs URLs. The automation
@@ -56,10 +56,12 @@ Steps 1 and 2 are done. What remains needs npm and GitHub access:
 
 1. ~~Set both package names to their owned npm names, set `private` to `false`, add a
    real license, and set `publishConfig.access` to `public`.~~ Done — both manifests
-   are public MIT `@macnason/*` packages with `publishConfig.access: public`.
+   are public MIT `@macnas/*` packages with `publishConfig.access: public`.
 2. ~~Set both versions, plus the CLI's exact runtime dependency, to
    `1.0.0-next.0`.~~ Done. Both names remain in the single Changesets fixed group.
-3. Claim the `@macnason` scope on npm with the account that will own both packages.
+3. Publish under the `@macnas` scope — the npm account is `macnas`, which is why the
+   packages are `@macnas/*` while the GitHub repository remains `macnason/stint`.
+   The two names are deliberately different; do not "fix" one to match the other.
 4. Make `github.com/macnason/stint` public. `STINT_PUBLIC_SOURCE_URL` cannot
    validate against a private repository.
 5. Create the GitHub environment `stint-npm-release`, protect it with required
@@ -68,7 +70,7 @@ Steps 1 and 2 are done. What remains needs npm and GitHub access:
    environment.
 6. Add environment variables `STINT_NPM_OWNER` and
    `STINT_TRUSTED_PUBLISHER`. The owner must exactly match both npm package
-   scopes (`macnason`). The publisher must equal
+   scopes (`macnas`, not the GitHub owner). The publisher must equal
    `macnason/stint:.github/workflows/release.yml:stint-npm-release`.
 7. Dispatch **Release Stint** from a protected ref with channel `next`.
 

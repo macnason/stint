@@ -2,7 +2,7 @@ import {
   isMonthString,
   type MonthString,
   type StintConfig,
-} from "@macnason/stint/schema";
+} from "@macnas/stint/schema";
 
 import { assertValidConfig, canonicalJson, currentUtcMonth } from "../config.js";
 import { CliError } from "../diagnostics.js";

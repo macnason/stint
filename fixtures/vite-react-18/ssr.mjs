@@ -1,8 +1,8 @@
 // Server rendering without browser globals proves the package is SSR-safe.
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
-import { Stint } from "@macnason/stint";
-import { normalizeStintConfig } from "@macnason/stint/schema";
+import { Stint } from "@macnas/stint";
+import { normalizeStintConfig } from "@macnas/stint/schema";
 
 const config = {
   schemaVersion: 1,

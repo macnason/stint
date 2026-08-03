@@ -28,11 +28,11 @@ beforeAll(() => {
   const tarballs = readdirSync(packedDirectory);
   runtimeTarball = join(
     packedDirectory,
-    tarballs.find((name) => /^macnason-stint-\d/.test(name))!,
+    tarballs.find((name) => /^macnas-stint-\d/.test(name))!,
   );
   cliTarball = join(
     packedDirectory,
-    tarballs.find((name) => /^macnason-stint-cli-/.test(name))!,
+    tarballs.find((name) => /^macnas-stint-cli-/.test(name))!,
   );
 }, 60_000);
 

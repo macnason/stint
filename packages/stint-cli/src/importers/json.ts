@@ -1,4 +1,4 @@
-import type { StintConfig } from "@macnason/stint/schema";
+import type { StintConfig } from "@macnas/stint/schema";
 
 import { CliError } from "../diagnostics.js";
 

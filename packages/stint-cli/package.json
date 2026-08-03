@@ -1,5 +1,5 @@
 {
-  "name": "@macnason/stint-cli",
+  "name": "@macnas/stint-cli",
   "version": "1.0.0-next.0",
   "private": false,
   "type": "module",
@@ -48,7 +48,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@macnason/stint": "1.0.0-next.0",
+    "@macnas/stint": "1.0.0-next.0",
     "csv-parse": "^7.0.1",
     "yaml": "^2.9.0",
     "yauzl": "^3.4.0"
