@@ -1,8 +1,32 @@
 {
   "name": "@macnason/stint",
-  "version": "0.0.0",
-  "private": true,
+  "version": "1.0.0-next.0",
+  "private": false,
   "type": "module",
+  "description": "A tactile React timeline for presenting career history.",
+  "keywords": [
+    "react",
+    "timeline",
+    "career",
+    "resume",
+    "cv",
+    "scrubber",
+    "component"
+  ],
+  "license": "MIT",
+  "author": "Mac Nason <mac@macnason.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/macnason/stint.git",
+    "directory": "packages/stint"
+  },
+  "homepage": "https://github.com/macnason/stint#readme",
+  "bugs": {
+    "url": "https://github.com/macnason/stint/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist"
   ],

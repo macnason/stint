@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in the component or CLI does not behave as documented
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - "@macnason/stint"
+        - "@macnason/stint-cli"
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.0-next.0
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: >
+        A minimal timeline config and component usage, or the exact CLI command.
+        A link to a runnable reproduction is ideal.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: React version, bundler (Vite, Next, other), Node version, browser.
+    validations:
+      required: true

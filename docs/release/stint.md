@@ -2,10 +2,12 @@
 
 Candidate version: `1.0.0-next.0`
 
-Stint is not remotely releasable yet. Both manifests are now named `@macnason/stint`
-and `@macnason/stint-cli`, but they remain private at `0.0.0`; the license, npm owner,
-trusted publisher, public source, package-specific npm URLs, and public docs URL are
-unresolved. The automation must keep failing closed until those facts are real.
+Stint is not remotely releasable yet. Package identity is now resolved: both manifests
+are named `@macnason/stint` and `@macnason/stint-cli`, are public at `1.0.0-next.0`,
+and carry MIT license metadata plus `publishConfig.access: public`. What remains
+unresolved is environmental — the npm owner, the trusted publisher, the protected
+environment, and (for `latest` only) the public source and docs URLs. The automation
+must keep failing closed until those facts are real.
 
 The preflight's `isPlaceholderName` guard still rejects any `@portfolio/*` name. That
 guard is deliberate and must not be renamed: it is the sentinel proving the check works,
@@ -17,12 +19,17 @@ manifest against a publishable one.
 CI installs from the lockfile, lints, runs every currently available workspace test
 and build, performs both dry-run packs, runs the packed CLI gate (U7), and finally
 runs the repository's protected `npm run build` command. The manual release workflow
-additionally demands U11 and the local preflight. Until U11 provides its named gate
-script, release dispatches fail closed while ordinary CI remains useful.
+additionally demands U11 and the preflight. Both named gate scripts now exist
+(`release:verify:u7` and `release:verify:u11`); release dispatches still fail closed
+on the unresolved environment facts below.
 
 A local candidate needs `1.0.0-next.0` on both packages plus U7 and U11 evidence
 from the same commit, package versions, and workflow run. It may retain private
-placeholder package names and does not need npm credentials, U9, or public URLs.
+placeholder package names and does not need npm credentials or public URLs.
+
+The U9 drawer/grid gate no longer exists. It lived in the portfolio repository and
+cannot run here; the live docs site plus the `latest` public-URL requirements replace
+it, and `STINT_PUBLIC_DOCS_URL` now carries that requirement.
 
 Use the same sequence locally:
 
@@ -34,7 +41,6 @@ npm run test --workspaces --if-present
 npm run build --workspaces --if-present
 npm run package:dry-run
 npm run release:verify:u7
-# Available only after the packed-runtime U11 slice lands:
 npm run release:verify:u11
 npm run release:preflight:local
 npm run build
@@ -46,21 +52,25 @@ whose commit, run ID, package names, or versions differ from the current candida
 
 ## Enabling `next`
 
-Do not change package identity speculatively. Once the names and ownership exist:
+Steps 1 and 2 are done. What remains needs npm and GitHub access:
 
-1. Set both package names to their owned npm names, set `private` to `false`, add a
-   real license, and set `publishConfig.access` to `public`.
-2. Set both versions, plus the CLI's exact runtime dependency, to
-   `1.0.0-next.0`. Keep both names in the single Changesets fixed group.
-3. Create the GitHub environment `stint-npm-release`, protect it with required
+1. ~~Set both package names to their owned npm names, set `private` to `false`, add a
+   real license, and set `publishConfig.access` to `public`.~~ Done — both manifests
+   are public MIT `@macnason/*` packages with `publishConfig.access: public`.
+2. ~~Set both versions, plus the CLI's exact runtime dependency, to
+   `1.0.0-next.0`.~~ Done. Both names remain in the single Changesets fixed group.
+3. Claim the `@macnason` scope on npm with the account that will own both packages.
+4. Make `github.com/macnason/stint` public. `STINT_PUBLIC_SOURCE_URL` cannot
+   validate against a private repository.
+5. Create the GitHub environment `stint-npm-release`, protect it with required
    reviewers and protected-branch deployment rules, and configure npm trusted
    publishing for this repository, `.github/workflows/release.yml`, and that exact
    environment.
-4. Add environment variables `STINT_NPM_OWNER` and
+6. Add environment variables `STINT_NPM_OWNER` and
    `STINT_TRUSTED_PUBLISHER`. The owner must exactly match both npm package
-   scopes. The publisher must equal
-   `OWNER/REPOSITORY:.github/workflows/release.yml:stint-npm-release`.
-5. Dispatch **Release Stint** from a protected ref with channel `next`.
+   scopes (`macnason`). The publisher must equal
+   `macnason/stint:.github/workflows/release.yml:stint-npm-release`.
+7. Dispatch **Release Stint** from a protected ref with channel `next`.
 
 The workflow has read-only default permissions. Only its protected `publish` job
 receives `id-token: write`; candidate and CI jobs never receive OIDC. There is no
@@ -79,7 +89,6 @@ documentation and UI must not claim a published version or provenance.
 `1.0.0-next.0` candidate with `npm dist-tag add`; it does not republish bytes.
 In addition to every `next` gate, promotion requires:
 
-- passing U9 drawer/grid evidence from the same protected run;
 - `STINT_PUBLIC_RUNTIME_NPM_URL` and `STINT_PUBLIC_CLI_NPM_URL` set to the exact
   npmjs.com pages for their package identities;
 - `STINT_PUBLIC_SOURCE_URL` set to the exact GitHub repository from

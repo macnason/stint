@@ -28,7 +28,7 @@ beforeAll(() => {
   const tarballs = readdirSync(packedDirectory);
   runtimeTarball = join(
     packedDirectory,
-    tarballs.find((name) => /^macnason-stint-0/.test(name))!,
+    tarballs.find((name) => /^macnason-stint-\d/.test(name))!,
   );
   cliTarball = join(
     packedDirectory,

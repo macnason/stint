@@ -11,10 +11,12 @@ This repository holds two packages, versioned together:
 | [`@macnason/stint`](packages/stint) | The React component, schema, and timeline utilities |
 | [`@macnason/stint-cli`](packages/stint-cli) | Authoring and import tooling for career data |
 
-> **Not yet published.** Both packages are private at `0.0.0` while the public
-> name, license, npm owner, and trusted publisher are resolved. The release
-> automation fails closed until those are real — see
-> [`docs/release/stint.md`](docs/release/stint.md).
+> **Not yet published.** Both packages carry the `1.0.0-next.0` candidate
+> version and are ready to publish, but nothing has been pushed to npm yet: the
+> npm owner and trusted publisher still have to be configured. The release
+> automation fails closed until they are real — see
+> [`docs/release/stint.md`](docs/release/stint.md). Do not add install
+> instructions or npm badges until the first `next` publish lands.
 
 ## Layout
 
@@ -26,6 +28,12 @@ tests/package/        Packed-tarball, bundle-size, and release-policy gates
 scripts/              Release preflight, gate recording, and publish helpers
 docs/release/         Release policy and promotion gates
 ```
+
+## Contributing
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) covers setup, the packed-tarball gate, and
+changesets. Security reports go through
+[`SECURITY.md`](SECURITY.md), not public issues.
 
 ## Development
 
@@ -53,6 +61,10 @@ than in a consumer's project.
 - **Integrations stay generic.** The package emits feedback events and exposes
   render slots; concrete haptics, text-morphing, and image primitives belong to
   the consumer.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
 
 ## Consuming from a local checkout
 
