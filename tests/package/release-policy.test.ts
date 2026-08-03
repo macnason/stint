@@ -405,6 +405,22 @@ function runPreflightFailure(
   return result.stderr;
 }
 
+/**
+ * The preflight reads release identity from the environment, and the release
+ * workflow sets those same variables for real. Inheriting them would make these
+ * tests assert against the ambient release environment rather than their own
+ * fixtures — passing under ci.yml and failing under release.yml. Everything the
+ * preflight consults is stripped, so each case states its own world.
+ */
+function hermeticEnvironment(): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.startsWith("STINT_") || key.startsWith("GITHUB_")) continue;
+    environment[key] = value;
+  }
+  return environment;
+}
+
 function executePreflight(
   fixture: string,
   channel: "local" | "next" | "latest",
@@ -416,7 +432,7 @@ function executePreflight(
     {
       encoding: "utf8",
       env: {
-        ...process.env,
+        ...hermeticEnvironment(),
         GITHUB_SHA: "test-sha",
         STINT_GATE_RUN_ID: "test-run",
         ...environment,
