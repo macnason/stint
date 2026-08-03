@@ -131,7 +131,32 @@ after the bootstrap does not republish. The release helper reconciles by
 comparing registry integrity against the local candidate bytes and completes only
 the missing tag operation.
 
-## Known unknown: `npm dist-tag` under OIDC
+## What a real dispatch has and has not proven
+
+Run 30812719743 (channel `next`, commit `5991123`) completed green through both
+jobs. It established:
+
+- OIDC token issuance and the trusted-publisher configuration on both packages
+  are correct — `npm dist-tag add` is an authenticated write and it succeeded.
+- **`npm dist-tag` works under OIDC.** The call sits outside the already-published
+  guard in `publishNext`, so it ran for both packages. The question below is
+  answered: no separate dist-tag permission is needed.
+- The candidate tarballs CI builds are byte-identical to the manually published
+  bootstrap bytes. `registryIntegrity` compares them and throws on mismatch; it
+  did not throw.
+
+It did **not** exercise `npm publish` under OIDC, because both versions already
+existed and the helper correctly skipped straight to tagging. So provenance
+attestation is still untested — `--provenance` is passed in `publishNext` but has
+never run. Expect the first real attestation at `1.0.0`, and check for it:
+
+```sh
+npm view PACKAGE_NAME@VERSION dist.attestations
+```
+
+`1.0.0-next.0` has no attestations and never will; it was published by hand.
+
+## Answered: `npm dist-tag` under OIDC
 
 Trusted publishing is configured on both packages with allowed action `npm publish`
 only. `npm stage publish` is deliberately not enabled: the helper never calls it,
@@ -140,9 +165,10 @@ duplicates the `stint-npm-release` environment reviewer.
 
 npm's allowed-actions setting says nothing about dist-tags, and the helper calls
 `npm dist-tag add` for both the `next` tag and the `latest` promotion, and
-`dist-tag rm` during rollback. Whether an OIDC token authorizes those calls is
-**untested** — the bootstrap was a manual publish, so no dist-tag operation has
-yet run under trusted publishing.
+`dist-tag rm` during rollback. A real dispatch has since confirmed `dist-tag add`
+succeeds under an OIDC token with only `npm publish` allowed, so no extra
+permission is required. `dist-tag rm` runs only on the rollback path and remains
+untested.
 
 If a dispatch fails on `dist-tag`, the publish itself has already succeeded and the
 version is immutable. Do not retry the whole dispatch blind: check
