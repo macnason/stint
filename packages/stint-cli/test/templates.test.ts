@@ -38,7 +38,7 @@ describe("experience data template", () => {
             moduleResolution: "Bundler",
             baseUrl: ".",
             paths: {
-              "@macnas/stint/schema": [
+              "@macworks/stint/schema": [
                 join(repository, "packages/stint/src/schema.ts"),
               ],
             },

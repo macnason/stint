@@ -163,9 +163,9 @@ describe("release preflight", () => {
       runPreflight(fixture, "latest", {
         ...remoteEnvironment(),
         STINT_PUBLIC_RUNTIME_NPM_URL:
-          "https://www.npmjs.com/package/@macnas/stint",
+          "https://www.npmjs.com/package/@macworks/stint",
         STINT_PUBLIC_CLI_NPM_URL:
-          "https://www.npmjs.com/package/@macnas/stint-cli",
+          "https://www.npmjs.com/package/@macworks/stint-cli",
         STINT_PUBLIC_SOURCE_URL: "https://github.com/macnason/stint",
         STINT_PUBLIC_DOCS_URL: "https://stint.macnason.com",
         STINT_LATEST_APPROVED: "true",
@@ -186,8 +186,8 @@ describe("release preflight", () => {
       ...remoteEnvironment(),
       STINT_NPM_OWNER: "someone-else",
       STINT_PUBLIC_RUNTIME_NPM_URL:
-        "https://www.npmjs.com/package/@macnas/stint-cli",
-      STINT_PUBLIC_CLI_NPM_URL: "https://127.0.0.1/@macnas/stint-cli",
+        "https://www.npmjs.com/package/@macworks/stint-cli",
+      STINT_PUBLIC_CLI_NPM_URL: "https://127.0.0.1/@macworks/stint-cli",
       STINT_PUBLIC_SOURCE_URL: "https://github.com/unrelated/repository",
       STINT_PUBLIC_DOCS_URL: "https://192.168.1.2/docs",
       STINT_LATEST_APPROVED: "true",
@@ -195,10 +195,10 @@ describe("release preflight", () => {
 
     expect(result).toContain("STINT_NPM_OWNER must exactly match both package scopes");
     expect(result).toContain(
-      "STINT_PUBLIC_RUNTIME_NPM_URL must be the public npm URL for @macnas/stint",
+      "STINT_PUBLIC_RUNTIME_NPM_URL must be the public npm URL for @macworks/stint",
     );
     expect(result).toContain(
-      "STINT_PUBLIC_CLI_NPM_URL must be the public npm URL for @macnas/stint-cli",
+      "STINT_PUBLIC_CLI_NPM_URL must be the public npm URL for @macworks/stint-cli",
     );
     expect(result).toContain(
       "STINT_PUBLIC_SOURCE_URL must be the public GitHub URL for macnason/stint",
@@ -222,9 +222,9 @@ describe("release preflight", () => {
     const result = runPreflightFailure(fixture, "latest", {
       ...remoteEnvironment(),
       STINT_PUBLIC_RUNTIME_NPM_URL:
-        "https://www.npmjs.com/package/@macnas/stint",
+        "https://www.npmjs.com/package/@macworks/stint",
       STINT_PUBLIC_CLI_NPM_URL:
-        "https://www.npmjs.com/package/@macnas/stint-cli",
+        "https://www.npmjs.com/package/@macworks/stint-cli",
       STINT_PUBLIC_SOURCE_URL: "https://github.com/macnason/stint",
       STINT_PUBLIC_DOCS_URL: docsUrl,
       STINT_LATEST_APPROVED: "true",
@@ -294,8 +294,8 @@ function createFixture(
   );
 
   const publishable = options.publishable ?? false;
-  const runtimeName = publishable ? "@macnas/stint" : "@portfolio/stint";
-  const cliName = publishable ? "@macnas/stint-cli" : "@portfolio/stint-cli";
+  const runtimeName = publishable ? "@macworks/stint" : "@portfolio/stint";
+  const cliName = publishable ? "@macworks/stint-cli" : "@portfolio/stint-cli";
   const version = publishable || options.localCandidate ? "1.0.0-next.0" : "0.0.0";
   const metadata = publishable
     ? {
@@ -358,7 +358,7 @@ function writeGateEvidence(
 
 function remoteEnvironment(): NodeJS.ProcessEnv {
   return {
-    STINT_NPM_OWNER: "macnas",
+    STINT_NPM_OWNER: "macworks",
     STINT_TRUSTED_PUBLISHER:
       "macnason/stint:.github/workflows/release.yml:stint-npm-release",
     STINT_PROTECTED_ENVIRONMENT: "stint-npm-release",

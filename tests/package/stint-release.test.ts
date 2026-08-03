@@ -108,8 +108,8 @@ function createCandidate(channel: "next" | "latest"): {
   const directory = mkdtempSync(join(tmpdir(), "stint-release-helper-"));
   temporaryDirectories.push(directory);
   const packages = [
-    packageEntry(directory, "runtime", "@macnas/stint", "runtime.tgz"),
-    packageEntry(directory, "cli", "@macnas/stint-cli", "cli.tgz"),
+    packageEntry(directory, "runtime", "@macworks/stint", "runtime.tgz"),
+    packageEntry(directory, "cli", "@macworks/stint-cli", "cli.tgz"),
   ];
   const path = join(directory, "release-candidate.json");
   writeFileSync(

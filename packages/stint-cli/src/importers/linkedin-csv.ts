@@ -7,7 +7,7 @@ import {
   type MonthString,
   type StintExperience,
   type StintRole,
-} from "@macnas/stint/schema";
+} from "@macworks/stint/schema";
 
 import { CliError } from "../diagnostics.js";
 import { decodeUtf8, type ImportResult, type ImportWarning } from "./json.js";

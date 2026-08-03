@@ -5,7 +5,7 @@ import {
   validateStintConfig,
   type MonthString,
   type StintConfig,
-} from "@macnas/stint/schema";
+} from "@macworks/stint/schema";
 
 import { CliError, publicSchemaDiagnostic } from "./diagnostics.js";
 import { prepareDestination, readFileNoFollow } from "./project.js";

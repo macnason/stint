@@ -37,7 +37,7 @@ beforeAll(() => {
     root,
   );
   const tarball = readdirSync(packedDirectory).find((name) =>
-    /^macnas-stint-\d/.test(name),
+    /^macworks-stint-\d/.test(name),
   );
   expect(tarball).toBeTruthy();
   runtimeTarball = join(packedDirectory, tarball!);
@@ -196,7 +196,7 @@ describe("packed declarations and export map", () => {
       // Undeclared deep imports must not resolve.
       const deep = spawnSync(
         "node",
-        ["-e", "import('@macnas/stint/timeline').then(()=>process.exit(0),()=>process.exit(7))"],
+        ["-e", "import('@macworks/stint/timeline').then(()=>process.exit(0),()=>process.exit(7))"],
         { cwd: consumer, encoding: "utf8" },
       );
       expect(deep.status).toBe(7);

@@ -3,11 +3,11 @@
 Candidate version: `1.0.0-next.0`
 
 Stint is not remotely releasable yet. Package identity is now resolved: both manifests
-are named `@macnas/stint` and `@macnas/stint-cli`, are public at `1.0.0-next.0`,
+are named `@macworks/stint` and `@macworks/stint-cli`, are public at `1.0.0-next.0`,
 and carry MIT license metadata plus `publishConfig.access: public`. What remains
-unresolved is environmental — the npm owner, the trusted publisher, the protected
-environment, and (for `latest` only) the public source and docs URLs. The automation
-must keep failing closed until those facts are real.
+unresolved is environmental — the first npm publication, npm owner, trusted
+publisher, protected environment, and (for `latest` only) the public source and
+docs URLs. The automation must keep failing closed until those facts are real.
 
 The preflight's `isPlaceholderName` guard still rejects any `@portfolio/*` name. That
 guard is deliberate and must not be renamed: it is the sentinel proving the check works,
@@ -56,11 +56,11 @@ Steps 1 and 2 are done. What remains needs npm and GitHub access:
 
 1. ~~Set both package names to their owned npm names, set `private` to `false`, add a
    real license, and set `publishConfig.access` to `public`.~~ Done — both manifests
-   are public MIT `@macnas/*` packages with `publishConfig.access: public`.
+   are public MIT `@macworks/*` packages with `publishConfig.access: public`.
 2. ~~Set both versions, plus the CLI's exact runtime dependency, to
    `1.0.0-next.0`.~~ Done. Both names remain in the single Changesets fixed group.
-3. Publish under the `@macnas` scope — the npm account is `macnas`, which is why the
-   packages are `@macnas/*` while the GitHub repository remains `macnason/stint`.
+3. Publish under the `@macworks` scope — the npm account is `macworks`, which is why the
+   packages are `@macworks/*` while the GitHub repository remains `macnason/stint`.
    The two names are deliberately different; do not "fix" one to match the other.
 4. Make `github.com/macnason/stint` public. `STINT_PUBLIC_SOURCE_URL` cannot
    validate against a private repository.
@@ -70,7 +70,7 @@ Steps 1 and 2 are done. What remains needs npm and GitHub access:
    environment.
 6. Add environment variables `STINT_NPM_OWNER` and
    `STINT_TRUSTED_PUBLISHER`. The owner must exactly match both npm package
-   scopes (`macnas`, not the GitHub owner). The publisher must equal
+   scopes (`macworks`, not the GitHub owner). The publisher must equal
    `macnason/stint:.github/workflows/release.yml:stint-npm-release`.
 7. Dispatch **Release Stint** from a protected ref with channel `next`.
 
@@ -88,18 +88,19 @@ documentation and UI must not claim a published version or provenance.
 ## The one-time bootstrap publish
 
 npm cannot configure a trusted publisher for a package name that does not exist
-yet, so the very first publish of each package could not come from the OIDC
-workflow. It was done manually, once, from a maintainer machine:
+yet, so the very first publish of each package cannot come from the OIDC workflow.
+The bootstrap remains pending until the public registry confirms both exact
+package identities and their candidate bytes. When ready, run it once from a
+maintainer machine:
 
 ```sh
-npm publish .context/bootstrap/macnas-stint-1.0.0-next.0.tgz --tag next
-npm publish .context/bootstrap/macnas-stint-cli-1.0.0-next.0.tgz --tag next
+npm publish .context/bootstrap/macworks-stint-1.0.0-next.0.tgz --tag next
+npm publish .context/bootstrap/macworks-stint-cli-1.0.0-next.0.tgz --tag next
 ```
 
-This is the only publish in the project's history without provenance, and it must
-stay the only one. Every subsequent publish and promotion goes through the
-protected workflow. Do not add an npm token to CI to avoid a future bootstrap —
-there is no future bootstrap; both names now exist.
+This exception must stay one-time and must not be used as a reason to add an npm
+token to CI. After the bootstrap, every subsequent publish and promotion goes
+through the protected workflow.
 
 Because published versions are immutable, dispatching `next` for `1.0.0-next.0`
 after the bootstrap does not republish. The release helper reconciles by

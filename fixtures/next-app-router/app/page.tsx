@@ -1,12 +1,12 @@
 // A Server Component: imports the server-safe schema subpath, resolves the
 // current month on the server, and renders the exported client component
 // without `transpilePackages`.
-import { Stint } from "@macnas/stint";
+import { Stint } from "@macworks/stint";
 import {
   normalizeStintConfig,
   type MonthString,
   type StintConfig,
-} from "@macnas/stint/schema";
+} from "@macworks/stint/schema";
 
 /** Clearly fictional demo career data — no real person is described. */
 const fixtureConfig: StintConfig = {

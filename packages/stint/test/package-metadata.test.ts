@@ -75,7 +75,7 @@ describe("workspace package metadata", () => {
     const changesets = await readJson(".changeset/config.json");
 
     expect(changesets.fixed).toEqual([
-      ["@macnas/stint", "@macnas/stint-cli"],
+      ["@macworks/stint", "@macworks/stint-cli"],
     ]);
     expect(changesets.privatePackages).toEqual({ version: true, tag: false });
   });

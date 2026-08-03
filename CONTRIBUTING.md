@@ -1,7 +1,7 @@
 # Contributing to Stint
 
 Thanks for taking a look. Stint is two packages versioned together: the React
-runtime (`@macnas/stint`) and the authoring CLI (`@macnas/stint-cli`).
+runtime (`@macworks/stint`) and the authoring CLI (`@macworks/stint-cli`).
 
 ## Setup
 

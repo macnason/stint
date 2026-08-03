@@ -1,11 +1,11 @@
-# @macnas/stint-cli
+# @macworks/stint-cli
 
 Authoring and import tooling for [Stint](https://github.com/macnason/stint)
 career timelines. It writes canonical JSON plus a generated, typed TypeScript
 literal — atomically, so a failed run leaves no half-written config.
 
 ```bash
-npx @macnas/stint-cli help
+npx @macworks/stint-cli help
 ```
 
 Node 22 or newer is required.

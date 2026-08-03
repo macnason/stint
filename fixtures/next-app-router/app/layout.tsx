@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import "@macnas/stint/styles.css";
-import "@macnas/stint/presets.css";
+import "@macworks/stint/styles.css";
+import "@macworks/stint/presets.css";
 
 export const metadata = {
   title: "Stint fixture — Next App Router",
