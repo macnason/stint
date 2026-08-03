@@ -131,6 +131,25 @@ after the bootstrap does not republish. The release helper reconciles by
 comparing registry integrity against the local candidate bytes and completes only
 the missing tag operation.
 
+## Known unknown: `npm dist-tag` under OIDC
+
+Trusted publishing is configured on both packages with allowed action `npm publish`
+only. `npm stage publish` is deliberately not enabled: the helper never calls it,
+and enabling it would route CI publishes through a second 2FA approval that
+duplicates the `stint-npm-release` environment reviewer.
+
+npm's allowed-actions setting says nothing about dist-tags, and the helper calls
+`npm dist-tag add` for both the `next` tag and the `latest` promotion, and
+`dist-tag rm` during rollback. Whether an OIDC token authorizes those calls is
+**untested** — the bootstrap was a manual publish, so no dist-tag operation has
+yet run under trusted publishing.
+
+If a dispatch fails on `dist-tag`, the publish itself has already succeeded and the
+version is immutable. Do not retry the whole dispatch blind: check
+`npm dist-tag ls PACKAGE_NAME` first, then have a maintainer run the missing tag
+command locally, the same shape as the bootstrap. Then fix the cause before the
+next release rather than making local tagging routine.
+
 ## Promoting `latest`
 
 `latest` is a separate manual dispatch. It promotes the already published, verified
