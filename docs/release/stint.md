@@ -85,22 +85,46 @@ digest and manifest binding, then publishes or promotes the exact verified bytes
 Until npm confirms matching package identities and registry integrity,
 documentation and UI must not claim a published version or provenance.
 
+## The bootstrap set `latest`, and that could not be avoided
+
+The bootstrap published both packages with `--tag next`, but npm assigns `latest`
+on a package's **first** publish regardless of `--tag`. Both packages therefore
+carry `latest: 1.0.0-next.0` and `next: 1.0.0-next.0`, and a plain
+`npm install @macworks/stint` resolves to the prerelease.
+
+This is a deviation from the policy below, which treats `latest` as a separately
+approved promotion gated on the docs site. It is a property of npm's first-publish
+behaviour, not of the release helper. There is no way to publish a package with no
+`latest` tag. Options, none of them free:
+
+- **Accept it.** Reasonable pre-1.0: the only published version is the candidate,
+  so `latest` and `next` legitimately point at the same bytes. The `latest`
+  promotion gate then first has real meaning at `1.0.0`.
+- **Point `latest` elsewhere later.** Once `1.0.0` publishes through the workflow,
+  the promotion moves `latest` off the prerelease and normal service resumes.
+
+Do not try to "fix" this by unpublishing. Unpublishing burns the version number
+permanently and is explicitly not the rollback mechanism.
+
 ## The one-time bootstrap publish
 
 npm cannot configure a trusted publisher for a package name that does not exist
-yet, so the very first publish of each package cannot come from the OIDC workflow.
-The bootstrap remains pending until the public registry confirms both exact
-package identities and their candidate bytes. When ready, run it once from a
-maintainer machine:
+yet, so the very first publish of each package could not come from the OIDC
+workflow. It was done once, manually, from a maintainer machine:
 
 ```sh
 npm publish .context/bootstrap/macworks-stint-1.0.0-next.0.tgz --tag next
 npm publish .context/bootstrap/macworks-stint-cli-1.0.0-next.0.tgz --tag next
 ```
 
-This exception must stay one-time and must not be used as a reason to add an npm
-token to CI. After the bootstrap, every subsequent publish and promotion goes
-through the protected workflow.
+Both published versions were verified against the local candidate bytes:
+`@macworks/stint` shasum `d207b40645c205b9850cf4aa1739bc76a78e4027`,
+`@macworks/stint-cli` shasum `938b450409f046369c0f528448672a8e1d6535b3`.
+
+This is the only publish in the project's history without provenance, and it must
+stay the only one. It must not be used as a reason to add an npm token to CI —
+there is no future bootstrap; both names now exist. Every subsequent publish and
+promotion goes through the protected workflow.
 
 Because published versions are immutable, dispatching `next` for `1.0.0-next.0`
 after the bootstrap does not republish. The release helper reconciles by

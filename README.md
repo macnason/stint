@@ -11,12 +11,13 @@ This repository holds two packages, versioned together:
 | [`@macworks/stint`](packages/stint) | The React component, schema, and timeline utilities |
 | [`@macworks/stint-cli`](packages/stint-cli) | Authoring and import tooling for career data |
 
-> **Not yet published.** Both packages carry the `1.0.0-next.0` candidate
-> version and are ready to publish, but nothing has been pushed to npm yet: the
-> npm owner and trusted publisher still have to be configured. The release
-> automation fails closed until they are real — see
-> [`docs/release/stint.md`](docs/release/stint.md). Do not add install
-> instructions or npm badges until the first `next` publish lands.
+```bash
+npm install @macworks/stint
+```
+
+> **Prerelease.** Both packages are published at `1.0.0-next.0`. The API may still
+> change before `1.0.0`. See [`docs/release/stint.md`](docs/release/stint.md) for
+> the release policy.
 
 ## Layout
 
@@ -68,7 +69,8 @@ MIT — see [`LICENSE`](LICENSE).
 
 ## Consuming from a local checkout
 
-Until the packages are published, a local consumer points at this checkout:
+To develop against unreleased changes, a local consumer points at this checkout
+instead of the registry:
 
 ```jsonc
 {
