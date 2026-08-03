@@ -85,6 +85,27 @@ digest and manifest binding, then publishes or promotes the exact verified bytes
 Until npm confirms matching package identities and registry integrity,
 documentation and UI must not claim a published version or provenance.
 
+## The one-time bootstrap publish
+
+npm cannot configure a trusted publisher for a package name that does not exist
+yet, so the very first publish of each package could not come from the OIDC
+workflow. It was done manually, once, from a maintainer machine:
+
+```sh
+npm publish .context/bootstrap/macnas-stint-1.0.0-next.0.tgz --tag next
+npm publish .context/bootstrap/macnas-stint-cli-1.0.0-next.0.tgz --tag next
+```
+
+This is the only publish in the project's history without provenance, and it must
+stay the only one. Every subsequent publish and promotion goes through the
+protected workflow. Do not add an npm token to CI to avoid a future bootstrap —
+there is no future bootstrap; both names now exist.
+
+Because published versions are immutable, dispatching `next` for `1.0.0-next.0`
+after the bootstrap does not republish. The release helper reconciles by
+comparing registry integrity against the local candidate bytes and completes only
+the missing tag operation.
+
 ## Promoting `latest`
 
 `latest` is a separate manual dispatch. It promotes the already published, verified
