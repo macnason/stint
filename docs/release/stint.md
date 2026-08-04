@@ -83,6 +83,9 @@ an immutable, one-day artifact containing only both tarballs, a release helper, 
 commit/run-bound manifest, and SHA-256 digests. The OIDC job does not check out the
 repository or install dependencies: it downloads that artifact, verifies every
 digest and manifest binding, then publishes or promotes the exact verified bytes.
+For `next`, `npm publish --tag next` performs the tag write in the authenticated
+publish request; the helper verifies the resulting registry integrity and tag and
+does not issue a separate `npm dist-tag` command.
 Until npm confirms matching package identities and registry integrity,
 documentation and UI must not claim a published `1.0.0-next.2` version or provenance.
 
@@ -134,22 +137,19 @@ the missing tag operation.
 
 ## What a real dispatch has and has not proven
 
-Run 30812719743 (channel `next`, commit `5991123`) completed green through both
-jobs. It established:
+Run 30903618222 (channel `next`, commit `d44d0ac`) published
+`@macworks/stint@1.0.0-next.2` with provenance, then exposed two invalid helper
+assumptions:
 
-- OIDC token issuance and the trusted-publisher configuration on both packages
-  are correct — `npm dist-tag add` is an authenticated write and it succeeded.
-- **`npm dist-tag` works under OIDC.** The call sits outside the already-published
-  guard in `publishNext`, so it ran for both packages. The question below is
-  answered: no separate dist-tag permission is needed.
-- The candidate tarballs CI builds are byte-identical to the manually published
-  bootstrap bytes. `registryIntegrity` compares them and throws on mismatch; it
-  did not throw.
+- npm 11's `publish --json` output describes tarball contents rather than returning
+  the published package ID; registry integrity is the authoritative success check.
+- Trusted publishing authenticates `npm publish`, but a later `npm dist-tag`
+  process does not reuse that OIDC credential and fails with `E401`.
+- `npm publish --tag next` already updates `next`, so no second tag command is
+  required.
 
-It did **not** exercise `npm publish` under OIDC, because both versions already
-existed and the helper correctly skipped straight to tagging. So provenance
-attestation is still untested — `--provenance` is passed in `publishNext` but has
-never run. Expect the first real attestation at `1.0.0`, and check for it:
+The runtime publication proved OIDC publishing and provenance work. Check future
+releases with:
 
 ```sh
 npm view PACKAGE_NAME@VERSION dist.attestations
@@ -157,25 +157,22 @@ npm view PACKAGE_NAME@VERSION dist.attestations
 
 `1.0.0-next.0` has no attestations and never will; it was published by hand.
 
-## Answered: `npm dist-tag` under OIDC
+## `npm dist-tag` is not authenticated by trusted publishing
 
 Trusted publishing is configured on both packages with allowed action `npm publish`
 only. `npm stage publish` is deliberately not enabled: the helper never calls it,
 and enabling it would route CI publishes through a second 2FA approval that
 duplicates the `stint-npm-release` environment reviewer.
 
-npm's allowed-actions setting says nothing about dist-tags, and the helper calls
-`npm dist-tag add` for both the `next` tag and the `latest` promotion, and
-`dist-tag rm` during rollback. A real dispatch has since confirmed `dist-tag add`
-succeeds under an OIDC token with only `npm publish` allowed, so no extra
-permission is required. `dist-tag rm` runs only on the rollback path and remains
-untested.
+npm's trusted-publishing exchange is performed by `npm publish`; a later
+`npm dist-tag` process does not reuse that credential. The `next` path therefore
+relies on `npm publish --tag next`, verifies each immutable version's registry
+integrity and resulting tag, and reconciles partial publication on retry. `latest`
+promotion still requires credentials that authorize `npm dist-tag`.
 
-If a dispatch fails on `dist-tag`, the publish itself has already succeeded and the
-version is immutable. Do not retry the whole dispatch blind: check
-`npm dist-tag ls PACKAGE_NAME` first, then have a maintainer run the missing tag
-command locally, the same shape as the bootstrap. Then fix the cause before the
-next release rather than making local tagging routine.
+If a `latest` dispatch fails on `dist-tag`, check `npm dist-tag ls PACKAGE_NAME`
+before retrying. A maintainer credential that authorizes tag changes is required;
+trusted publishing alone cannot perform that promotion.
 
 ## Promoting `latest`
 
@@ -194,11 +191,12 @@ Public npm/source links stay absent from product surfaces until these gates pass
 
 ## Rollback
 
-Never use `npm unpublish` as rollback. The release helper snapshots both packages'
-affected tags before changing either package. On partial failure it restores both
-snapshots. A retry reconciles already-published immutable versions by comparing
-their registry integrity with the local candidate bytes, then completes only the
-missing publish/tag operation. For manual inspection:
+Never use `npm unpublish` as rollback. For `latest`, the release helper snapshots
+both packages' affected tags and restores them on partial failure. A `next` publish
+cannot remove an immutable version and cannot restore tags through trusted
+publishing, so a retry reconciles existing versions by comparing registry integrity
+with the candidate bytes, then publishes only the missing package. For manual
+inspection:
 
 ```sh
 npm dist-tag ls PACKAGE_NAME

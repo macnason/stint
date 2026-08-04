@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe("stint release transaction", () => {
-  it("restores both next tags after a partial publish and reconciles the retry", async () => {
+  it("reconciles an immutable partial next publish without separate tag writes", async () => {
     const candidate = createCandidate("next");
     const registry = createRegistry(candidate.packages, {
       initialTags: { next: "0.9.0", latest: "0.8.0" },
@@ -29,7 +29,9 @@ describe("stint release transaction", () => {
         runNpm: registry.run,
       }),
     ).rejects.toThrow("injected publish failure");
-    expect(registry.tags(candidate.packages[0].name)).toMatchObject({ next: "0.9.0" });
+    expect(registry.tags(candidate.packages[0].name)).toMatchObject({
+      next: "1.0.0-next.0",
+    });
     expect(registry.tags(candidate.packages[1].name)).toMatchObject({ next: "0.9.0" });
 
     await releaseCandidate({
@@ -48,6 +50,11 @@ describe("stint release transaction", () => {
     });
     expect(registry.publishCount(candidate.packages[0].name)).toBe(1);
     expect(registry.publishCount(candidate.packages[1].name)).toBe(2);
+    expect(
+      registry.commands.some(
+        (args) => args[0] === "dist-tag" && args[1] === "add" && args[3] === "next",
+      ),
+    ).toBe(false);
   });
 
   it("compares every next package's registry integrity before changing latest", async () => {
@@ -185,7 +192,11 @@ function createRegistry(
       const record = records.get(candidate.name)!;
       record.versions.set(candidate.version, candidate.integrity);
       record.tags.next = candidate.version;
-      return JSON.stringify({ id: `${candidate.name}@${candidate.version}` });
+      return JSON.stringify({
+        name: candidate.file,
+        version: candidate.version,
+        files: [],
+      });
     }
     if (args[0] === "dist-tag" && args[1] === "add") {
       const { name, version } = splitSpec(args[2]);
