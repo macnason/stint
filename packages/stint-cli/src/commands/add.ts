@@ -149,7 +149,8 @@ async function promptOptions(
     await ask("company", "Company: ");
     await ask("location", "Location (optional): ");
     await ask("start", "Employer start (YYYY-MM): ");
-    await ask("end", "Employer end (YYYY-MM, current, or null): ");
+    await ask("end", "Employer end (YYYY-MM, current, or null; blank means current): ");
+    if (values.end === "") values.end = "current";
     await ask("role-id", "Initial role ID: ");
     await ask("role-title", "Initial role title: ");
     await ask("role-start", "Initial role start (YYYY-MM): ");

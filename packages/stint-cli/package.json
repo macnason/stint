@@ -54,6 +54,7 @@
   "dependencies": {
     "@macworks/stint": "1.0.0-next.1",
     "csv-parse": "^7.0.1",
+    "puppeteer-core": "25.4.0",
     "yaml": "^2.9.0",
     "yauzl": "^3.4.0"
   },

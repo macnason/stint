@@ -3,7 +3,10 @@ import { CliError } from "../diagnostics.js";
 const LINKEDIN_HOSTS = new Set(["linkedin.com", "www.linkedin.com"]);
 
 function isLinkedInHttpsOrigin(url: URL): boolean {
-  return url.protocol === "https:" && LINKEDIN_HOSTS.has(url.hostname.toLowerCase());
+  const hostname = url.hostname.toLowerCase();
+  return url.protocol === "https:"
+    && (url.port === "" || url.port === "443")
+    && (LINKEDIN_HOSTS.has(hostname) || hostname.endsWith(".licdn.com"));
 }
 
 export function validateLinkedInProfileUrl(value: string): URL {

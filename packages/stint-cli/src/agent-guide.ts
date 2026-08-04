@@ -45,7 +45,7 @@ Pass one versioned local payload with \`setup --answers answers.json\` (or \`--a
 
 ## Recovery
 
-States include \`needs_project_choice\`, \`needs_source_choice\`, \`needs_linkedin_consent\`, \`waiting_for_browser_sign_in\`, \`needs_review\`, \`ready_to_apply\`, \`complete\`, \`complete_with_handoff\`, and \`failed_recoverably\`. Unsupported frameworks return a concrete handoff. Do not search until you guess a path.
+States include \`needs_source_choice\`, \`needs_linkedin_consent\`, \`waiting_for_browser_sign_in\`, \`needs_review\`, \`ready_to_apply\`, \`complete\`, \`complete_with_handoff\`, and \`failed_recoverably\`. In non-TTY agent runs, the browser state asks the person to rerun the consented browser step from a terminal. Unsupported frameworks return a concrete handoff. Do not search until you guess a path.
 
 ## Advanced compatibility
 
@@ -54,7 +54,7 @@ Use \`npx @macworks/stint-cli help --advanced\` for legacy path, conflict, forma
 Guide version: ${stintCliVersion}
 `;
 
-export const llmsText = `# Stint\n\n${agentPrompt}\n\nRead the full guide at the package guide export.\n`;
+export const llmsText = `# Stint\n\n${agentPrompt}\n\n${agentGuideMarkdown}`;
 
 export function guideBundle(): {
   readonly version: string;

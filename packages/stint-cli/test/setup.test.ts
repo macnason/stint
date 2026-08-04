@@ -26,7 +26,7 @@ function io(isTTY = false): CliIo & { stdout: string[]; stderr: string[] } {
 function project(): string {
   const root = mkdtempSync(join(tmpdir(), "stint-setup-"));
   directories.push(root);
-  writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "setup-fixture", dependencies: { vite: "8" } })}\n`);
+  writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "setup-fixture", dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.1" } })}\n`);
   writeFileSync(join(root, "profile.json"), `${JSON.stringify({ schemaVersion: 1, entries: [] })}\n`);
   return root;
 }
@@ -89,5 +89,50 @@ describe("setup", () => {
     const invalid = io();
     expect(await runCli(["setup", "linkedin", "--url", "http://example.com/profile", "--project", root, "--json"], invalid)).toBe(2);
     expect(invalid.stderr.join("")).toContain("E_URL");
+  });
+
+  it("rejects malformed consent types instead of treating truthy strings as approval", async () => {
+    const root = project();
+    const answersPath = join(root, "bad-answers.json");
+    writeFileSync(answersPath, `${JSON.stringify({
+      version: 1,
+      project: { path: root },
+      source: { kind: "linkedin-browser", url: "https://www.linkedin.com/in/example" },
+      consent: { linkedinBrowser: "false" },
+    })}\n`);
+    const output = io();
+    expect(await runCli(["setup", "--answers", answersPath, "--json"], output)).toBe(1);
+    expect(output.stderr.join("")).toContain("E_ANSWERS");
+  });
+
+  it("returns a terminal handoff for consented browser work in non-TTY mode", async () => {
+    const root = project();
+    const output = io();
+    expect(await runCli(["setup", "linkedin", "--url", "https://www.linkedin.com/in/example", "--experimental-browser", "--project", root, "--json"], output)).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({ state: "waiting_for_browser_sign_in", remediation: "rerun_in_tty" });
+  });
+
+  it("does not silently ignore session or rejected-review answers", async () => {
+    const root = project();
+    const resumePath = join(root, "resume.json");
+    writeFileSync(resumePath, `${JSON.stringify({
+      version: 1,
+      project: { path: root },
+      session: { action: "resume" },
+    })}\n`);
+    const resumeOutput = io();
+    expect(await runCli(["setup", "--answers", resumePath, "--json"], resumeOutput)).toBe(0);
+    expect(JSON.parse(resumeOutput.stdout.join(""))).toMatchObject({ state: "failed_recoverably" });
+
+    const rejectPath = join(root, "reject.json");
+    writeFileSync(rejectPath, `${JSON.stringify({
+      version: 1,
+      project: { path: root },
+      source: { kind: "file", path: "profile.json" },
+      review: { mode: "reject" },
+    })}\n`);
+    const rejectOutput = io();
+    expect(await runCli(["setup", "--answers", rejectPath, "--json"], rejectOutput)).toBe(0);
+    expect(JSON.parse(rejectOutput.stdout.join(""))).toMatchObject({ state: "needs_review" });
   });
 });

@@ -1,5 +1,6 @@
 import { accessSync, constants } from "node:fs";
 import { platform } from "node:os";
+import { delimiter, join } from "node:path";
 
 import { CliError } from "../diagnostics.js";
 
@@ -16,6 +17,16 @@ export function findSystemChrome(): string {
       try {
         accessSync(candidate, constants.X_OK);
         return candidate;
+      } catch {
+        continue;
+      }
+    }
+    for (const directory of (process.env.PATH ?? "").split(delimiter)) {
+      if (!directory) continue;
+      const path = join(directory, candidate);
+      try {
+        accessSync(path, constants.X_OK);
+        return path;
       } catch {
         continue;
       }

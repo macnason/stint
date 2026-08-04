@@ -9,9 +9,11 @@ export function doctorCommand(options: ParsedOptions): CommandResult {
     throw new CliError("E_COMMAND", "doctor does not accept positional arguments.", { exitCode: 2 });
   }
   const inspection = inspectProject(options.values.project ?? ".");
+  const inspectionPayload = publicProjectInspection(inspection);
   const payload = {
     ok: true,
-    ...publicProjectInspection(inspection),
+    project: inspectionPayload.root,
+    ...inspectionPayload,
   };
   return {
     payload,

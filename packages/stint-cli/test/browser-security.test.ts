@@ -12,6 +12,8 @@ describe("LinkedIn browser trust boundary", () => {
   it("allows only LinkedIn navigation origins", () => {
     expect(isAllowedLinkedInNavigation("https://www.linkedin.com/feed/")).toBe(true);
     expect(isAllowedLinkedInNavigation("https://linkedin.com/login")).toBe(true);
+    expect(isAllowedLinkedInNavigation("https://static.licdn.com/assets/app.js")).toBe(true);
+    expect(isAllowedLinkedInNavigation("https://www.linkedin.com:444/login")).toBe(false);
     expect(isAllowedLinkedInNavigation("https://evil.example/login")).toBe(false);
     expect(isAllowedLinkedInNavigation("javascript:alert(1)")).toBe(false);
   });

@@ -68,7 +68,7 @@ describe("workspace package metadata", () => {
     expect(cli.dependencies).toHaveProperty("csv-parse");
     expect(cli.dependencies).toHaveProperty("yaml");
     expect(cli.dependencies).toHaveProperty("yauzl");
-    expect(Object.keys(cli.exports as object)).toEqual(["."]);
+    expect(Object.keys(cli.exports as object)).toEqual([".", "./guide"]);
   });
 
   it("keeps runtime and CLI versions in one Changesets fixed group", async () => {

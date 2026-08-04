@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+
 import { CliError } from "../diagnostics.js";
 
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
@@ -32,8 +34,19 @@ export function planPackageInstall(
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
     throw new CliError("E_OPTION", "Package versions must be exact semver values.");
   }
-  const parsedRegistry = new URL(registry);
-  if (parsedRegistry.protocol !== "https:" || parsedRegistry.username || parsedRegistry.password) {
+  let parsedRegistry: URL;
+  try {
+    parsedRegistry = new URL(registry);
+  } catch (error) {
+    throw new CliError("E_SECURITY", "Package installs require a valid HTTPS registry URL.", { cause: error });
+  }
+  if (
+    parsedRegistry.protocol !== "https:" ||
+    parsedRegistry.hostname.toLowerCase() !== "registry.npmjs.org" ||
+    parsedRegistry.port ||
+    parsedRegistry.username ||
+    parsedRegistry.password
+  ) {
     throw new CliError("E_SECURITY", "Package installs require an HTTPS registry without credentials.");
   }
   const spec = `${packageName}@${version}`;
@@ -41,7 +54,7 @@ export function planPackageInstall(
     npm: ["install", "--save-exact", "--ignore-scripts", "--no-audit", "--no-fund", "--registry", parsedRegistry.toString(), spec],
     pnpm: ["add", "--save-exact", "--ignore-scripts", "--registry", parsedRegistry.toString(), spec],
     yarn: ["add", "--exact", "--ignore-scripts", "--registry", parsedRegistry.toString(), spec],
-    bun: ["add", "--exact", "--no-save", "--registry", parsedRegistry.toString(), spec],
+    bun: ["add", "--exact", "--ignore-scripts", "--registry", parsedRegistry.toString(), spec],
   }[manager];
   if (!args) throw new CliError("E_OPTION", `Unsupported package manager: ${manager}.`);
   return {
@@ -66,4 +79,21 @@ export function installReceipt(
     status,
     resumeAction: status === "succeeded" ? "continue-integration" : "inspect-lockfile",
   };
+}
+
+export function executePackageInstall(plan: PackageInstallPlan, projectRoot: string): InstallReceipt {
+  const result = spawnSync(plan.command, [...plan.argv], {
+    cwd: projectRoot,
+    env: {
+      PATH: process.env.PATH ?? "",
+      HOME: process.env.HOME ?? "",
+      npm_config_userconfig: "/dev/null",
+      NPM_CONFIG_USERCONFIG: "/dev/null",
+    },
+    shell: false,
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 120_000,
+  });
+  if (result.error || result.status !== 0) return installReceipt(plan, "failed");
+  return installReceipt(plan, "succeeded");
 }
