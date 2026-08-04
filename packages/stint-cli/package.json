@@ -1,6 +1,6 @@
 {
   "name": "@macworks/stint-cli",
-  "version": "1.0.0-next.0",
+  "version": "1.0.0-next.1",
   "private": false,
   "type": "module",
   "description": "Authoring and import tooling for Stint career timelines.",
@@ -48,7 +48,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
-    "@macworks/stint": "1.0.0-next.0",
+    "@macworks/stint": "1.0.0-next.1",
     "csv-parse": "^7.0.1",
     "yaml": "^2.9.0",
     "yauzl": "^3.4.0"

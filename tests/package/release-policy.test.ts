@@ -116,7 +116,7 @@ describe("release preflight", () => {
 
     expect(result).toContain("placeholder package name");
     expect(result).toContain("must not be private");
-    expect(result).toContain("version must be 1.0.0-next.0");
+    expect(result).toContain("version must match 1.0.0-next.N");
     expect(result).toContain("license metadata is required");
     expect(result).toContain("STINT_NPM_OWNER is required");
     expect(result).toContain("STINT_TRUSTED_PUBLISHER is required");

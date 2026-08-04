@@ -1,9 +1,10 @@
 # Stint release policy
 
-Candidate version: `1.0.0-next.0`
+Candidate version: `1.0.0-next.1`
 
 Stint is not remotely releasable yet. Package identity is now resolved: both manifests
-are named `@macworks/stint` and `@macworks/stint-cli`, are public at `1.0.0-next.0`,
+are named `@macworks/stint` and `@macworks/stint-cli`, and the current candidate is
+`1.0.0-next.1` (the bootstrap `1.0.0-next.0` remains immutable),
 and carry MIT license metadata plus `publishConfig.access: public`. What remains
 unresolved is environmental — the first npm publication, npm owner, trusted
 publisher, protected environment, and (for `latest` only) the public source and
@@ -23,7 +24,7 @@ additionally demands U11 and the preflight. Both named gate scripts now exist
 (`release:verify:u7` and `release:verify:u11`); release dispatches still fail closed
 on the unresolved environment facts below.
 
-A local candidate needs `1.0.0-next.0` on both packages plus U7 and U11 evidence
+A local candidate needs the same `1.0.0-next.N` version on both packages plus U7 and U11 evidence
 from the same commit, package versions, and workflow run. It may retain private
 placeholder package names and does not need npm credentials or public URLs.
 
@@ -58,7 +59,7 @@ Steps 1 and 2 are done. What remains needs npm and GitHub access:
    real license, and set `publishConfig.access` to `public`.~~ Done — both manifests
    are public MIT `@macworks/*` packages with `publishConfig.access: public`.
 2. ~~Set both versions, plus the CLI's exact runtime dependency, to
-   `1.0.0-next.0`.~~ Done. Both names remain in the single Changesets fixed group.
+   the current `1.0.0-next.N` candidate.~~ Done. Both names remain in the single Changesets fixed group.
 3. Publish under the `@macworks` scope — the npm account is `macworks`, which is why the
    packages are `@macworks/*` while the GitHub repository remains `macnason/stint`.
    The two names are deliberately different; do not "fix" one to match the other.
@@ -83,7 +84,7 @@ commit/run-bound manifest, and SHA-256 digests. The OIDC job does not check out 
 repository or install dependencies: it downloads that artifact, verifies every
 digest and manifest binding, then publishes or promotes the exact verified bytes.
 Until npm confirms matching package identities and registry integrity,
-documentation and UI must not claim a published version or provenance.
+documentation and UI must not claim a published `1.0.0-next.1` version or provenance.
 
 ## The bootstrap set `latest`, and that could not be avoided
 

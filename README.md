@@ -15,7 +15,7 @@ This repository holds two packages, versioned together:
 npm install @macworks/stint
 ```
 
-> **Prerelease.** Both packages are published at `1.0.0-next.0`. The API may still
+> **Prerelease.** Both packages are published at `1.0.0-next.1`. The API may still
 > change before `1.0.0`. See [`docs/release/stint.md`](docs/release/stint.md) for
 > the release policy.
 

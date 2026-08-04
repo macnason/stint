@@ -24,8 +24,8 @@ if (runtime && cli) {
     errors.push("release docs candidate version must match runtime and CLI versions");
   }
   for (const manifest of manifests) {
-    if (manifest.version !== "1.0.0-next.0") {
-      errors.push(`${manifest.name}: version must be 1.0.0-next.0`);
+    if (!isCandidateVersion(manifest.version)) {
+      errors.push(`${manifest.name}: version must match 1.0.0-next.N`);
     }
   }
   if (cli.dependencies?.[runtime.name] !== runtime.version) {
@@ -302,6 +302,10 @@ function isPlaceholderName(name) {
     name.startsWith("@portfolio/") ||
     /(?:placeholder|temp)/i.test(name)
   );
+}
+
+function isCandidateVersion(version) {
+  return typeof version === "string" && /^1\.0\.0-next\.\d+$/.test(version);
 }
 
 function readJson(relativePath, jsonErrors) {
