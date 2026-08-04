@@ -79,7 +79,7 @@ and future-dated entries. The component surfaces the same set through
 | `onFeedback` | `StintFeedbackHandler` | Generic feedback events — wire your own haptics. |
 | `onDiagnostics` | `(diagnostics) => void` | Structural problems in `data`. |
 | `currentMonth` | `CurrentMonthMode` | Override the reference month; useful for tests. |
-| `orientation` | `StintOrientation` | `horizontal`, `vertical`, or responsive. |
+| `orientation` | `StintOrientation` | `horizontal` by default; choose `vertical` or `responsive` when needed. |
 | `resetOnLeave` | `boolean` | Off by default; committed selections survive pointer leave. |
 | `locale` / `labels` | `string` / `object` | Month formatting and accessible labels. |
 | `slots` / `classNames` | `StintSlots` / record | Render slots for logo, readout, and ticks. |

@@ -121,6 +121,7 @@ export interface StintProps {
   /** Consumer-supplied config in the public schema. */
   data: StintConfig;
   currentMonth?: CurrentMonthMode;
+  /** Layout axis; horizontal by default. */
   orientation?: StintOrientation;
   /** Controlled selection. */
   value?: StintSelection;
@@ -254,7 +255,7 @@ const cx = (...parts: (string | false | undefined)[]) =>
 export function Stint({
   data,
   currentMonth,
-  orientation = "responsive",
+  orientation = "horizontal",
   value,
   defaultValue,
   onChange,
