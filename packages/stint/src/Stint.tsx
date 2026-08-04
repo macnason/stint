@@ -762,6 +762,8 @@ function StintTimeline({
   const onScrubDown = useCallback(
     (event: ReactPointerEvent) => {
       const s = state.current;
+      // Nested drawers and sheets must not claim a timeline scrub gesture.
+      event.stopPropagation();
       event.currentTarget.setPointerCapture(event.pointerId);
       s.dragPointerId = event.pointerId;
       s.lastPointerType = event.pointerType;

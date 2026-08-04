@@ -44,6 +44,29 @@ const valuetext = () =>
   screen.getByRole("slider").getAttribute("aria-valuetext") ?? "";
 
 describe("pointer scrubbing", () => {
+  it("keeps scrub starts from reaching a parent drag surface", () => {
+    const onParentPointerDown = vi.fn();
+    dom.setReducedMotion(true);
+    const { container } = render(
+      <div onPointerDown={onParentPointerDown}>
+        <Stint data={makeConfig()} currentMonth={fixed} orientation="vertical" />
+      </div>,
+    );
+    const slider = screen.getByRole("slider");
+    const rail = container.querySelector<HTMLElement>(".stint__rail");
+    const root = container.querySelector<HTMLElement>(".stint");
+
+    expect(rail).not.toBeNull();
+    expect(root).not.toBeNull();
+
+    fireEvent.pointerDown(slider, { pointerId: 1, pointerType: "touch" });
+    fireEvent.pointerDown(rail!, { pointerId: 2, pointerType: "touch" });
+    expect(onParentPointerDown).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(root!, { pointerId: 3, pointerType: "touch" });
+    expect(onParentPointerDown).toHaveBeenCalledOnce();
+  });
+
   it("commits the month under the pointer along the horizontal axis", () => {
     const { slider } = mount("horizontal");
     // Bounds 2023-01..2025-06 plus 6 lead / 2 trail pad months = 44 months.
