@@ -9,6 +9,7 @@ export type CliErrorCode =
   | "E_ARCHIVE"
   | "E_ANSWERS"
   | "E_ANSWERS_LIMIT"
+  | "E_BROWSER"
   | "E_IMPORT_FORMAT"
   | "E_IMPORT_LIMIT"
   | "E_IMPORT_PARSE"

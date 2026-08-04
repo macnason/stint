@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 
 import { CliError } from "../diagnostics.js";
+import { validateLinkedInProfileUrl } from "../browser/security.js";
 import { inspectProject } from "../project.js";
 import { readAnswers, type SetupAnswers } from "../setup/answers.js";
 import { parseOptions, rejectUnknownOptions, type ParsedOptions } from "../options.js";
@@ -64,7 +65,7 @@ export async function setupCommand(
 
   if (source.kind === "linkedin-browser") {
     const url = source.url ?? options.values.url;
-    validateLinkedInUrl(url);
+    validateLinkedInProfileUrl(url ?? "");
     const consent = answers?.consent?.linkedinBrowser || options.flags.has("experimental-browser");
     if (!consent) {
       return browserState("needs_linkedin_consent", inspection, "We don't send your profile or project data to Stint servers; setup runs on your device. The visible browser connects directly to LinkedIn, and you sign in there.");
@@ -180,21 +181,6 @@ function browserState(
     },
     human: message,
   };
-}
-
-function validateLinkedInUrl(url: string | undefined): void {
-  if (!url) {
-    throw new CliError("E_URL", "LinkedIn browser setup requires --url https://www.linkedin.com/in/... .", { exitCode: 2 });
-  }
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new CliError("E_URL", "LinkedIn profile URL must be a valid HTTPS URL.", { exitCode: 2 });
-  }
-  if (parsed.protocol !== "https:" || !/^(www\.)?linkedin\.com$/i.test(parsed.hostname) || !parsed.pathname.startsWith("/in/")) {
-    throw new CliError("E_URL", "LinkedIn profile URL must use https://www.linkedin.com/in/... .", { exitCode: 2 });
-  }
 }
 
 export function setupOptionValues(): readonly string[] {
