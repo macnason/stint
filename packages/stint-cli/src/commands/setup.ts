@@ -112,15 +112,28 @@ async function runFileImport(
   delete (importOptions.values as Record<string, string>).url;
   delete (importOptions.values as Record<string, string>).reference;
   const result = await importCommand(importOptions, false);
+  const supportedIntegration = inspection.framework === "next" || inspection.framework === "vite";
+  const state = apply
+    ? supportedIntegration
+      ? "complete"
+      : "complete_with_handoff"
+    : "ready_to_apply";
   return {
     payload: {
       ...result.payload,
-      state: apply ? "complete" : "ready_to_apply",
+      state,
       projectInspection: publicInspection(inspection),
       privacy: "File parsing stays on this device and does not call Stint servers.",
+      ...(supportedIntegration
+        ? {}
+        : {
+            handoff: "Add the Stint dependency and render the generated data module in the detected application entry point.",
+          }),
     },
     human: apply
-      ? result.human
+      ? supportedIntegration
+        ? result.human
+        : `${result.human} The project needs a manual integration handoff.`
       : `${result.human} Review the plan, then rerun with --apply or answers.apply=true.`,
   };
 }

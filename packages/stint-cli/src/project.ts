@@ -87,7 +87,6 @@ export function discoverProject(startPath = process.cwd()): ProjectContext {
   let current = realpathSync(resolve(startPath));
   if (!statSync(current).isDirectory()) current = dirname(current);
   for (;;) {
-    const candidate = join(current, "package.json");
     try {
       return resolveProject(current);
     } catch (error) {
