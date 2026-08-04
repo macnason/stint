@@ -13,6 +13,7 @@
  *   --stint-focus         focus ring color              (default currentColor)
  *   --stint-label-active  in-band year label color      (default currentColor)
  *   --stint-logo-radius   logo tile corner radius
+ *   --stint-horizontal-min-width  minimum horizontal timeline track width
  *   --stint-length        vertical axis length          (default 340px)
  */
 
@@ -27,12 +28,17 @@
   --stint-focus: currentColor;
   --stint-label-active: currentColor;
   --stint-logo-radius: 9px;
+  --stint-horizontal-min-width: 560px;
   --stint-length: 340px;
 
   display: flex;
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.stint__timeline {
+  display: contents;
 }
 
 /* ---------- vertical composition: rail | ruler | readout ---------- */
@@ -82,18 +88,38 @@
   padding-block-end: 12px;
 }
 
-.stint[data-axis="horizontal"] .stint__rail {
+.stint[data-axis="horizontal"] .stint__timeline {
   order: 2;
-  height: 42px;
+  display: flex;
+  min-width: 0;
   width: 100%;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.stint[data-axis="horizontal"] .stint__timeline::-webkit-scrollbar {
+  display: none;
+}
+
+.stint[data-axis="horizontal"] .stint__timeline > .stint__rail,
+.stint[data-axis="horizontal"] .stint__timeline > .stint__ruler {
+  width: 100%;
+  min-width: var(--stint-horizontal-min-width);
+}
+
+.stint[data-axis="horizontal"] .stint__rail {
+  height: 42px;
   flex-shrink: 0;
+  touch-action: pan-x;
 }
 
 .stint[data-axis="horizontal"] .stint__ruler {
-  order: 3;
   height: 88px;
-  width: 100%;
+  flex-shrink: 0;
   cursor: ew-resize;
+  touch-action: pan-x;
 }
 
 /* ---------- responsive mode: CSS owns the 40rem visual switch ----------
@@ -117,16 +143,34 @@
     padding-inline-start: 0;
     padding-block-end: 12px;
   }
-  .stint[data-orientation="responsive"] .stint__rail {
+  .stint[data-orientation="responsive"] .stint__timeline {
     order: 2;
+    display: flex;
+    min-width: 0;
+    width: 100%;
+    flex-direction: column;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .stint[data-orientation="responsive"] .stint__timeline::-webkit-scrollbar {
+    display: none;
+  }
+  .stint[data-orientation="responsive"] .stint__timeline > .stint__rail,
+  .stint[data-orientation="responsive"] .stint__timeline > .stint__ruler {
+    width: 100%;
+    min-width: var(--stint-horizontal-min-width);
+  }
+  .stint[data-orientation="responsive"] .stint__rail {
     width: 100%;
     height: 42px;
+    touch-action: pan-x;
   }
   .stint[data-orientation="responsive"] .stint__ruler {
-    order: 3;
     width: 100%;
     height: 88px;
     cursor: ew-resize;
+    touch-action: pan-x;
   }
   .stint[data-orientation="responsive"] .stint__logoShell {
     top: 50%;
@@ -176,6 +220,9 @@
     text-align: start;
     padding-inline-start: 12px;
     padding-block-end: 0;
+  }
+  .stint[data-orientation="responsive"] .stint__timeline {
+    display: contents;
   }
   .stint[data-orientation="responsive"] .stint__rail {
     order: 1;

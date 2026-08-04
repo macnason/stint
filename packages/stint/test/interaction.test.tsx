@@ -83,6 +83,28 @@ describe("pointer scrubbing", () => {
     expect(valuetext()).toContain("Field Notes Co");
   });
 
+  it("keeps pointer scrubbing aligned after the horizontal viewport scrolls", () => {
+    const { slider } = mount("horizontal");
+    const timeline = slider.parentElement!;
+    Object.defineProperty(timeline, "scrollLeft", {
+      configurable: true,
+      value: 300,
+    });
+
+    act(() => {
+      fireEvent.pointerDown(slider, {
+        pointerId: 1,
+        clientX: 100,
+        clientY: 40,
+      });
+      dom.flushFrames(4);
+    });
+
+    expect(Number(slider.getAttribute("aria-valuenow"))).toBeGreaterThan(
+      Number(slider.getAttribute("aria-valuemax")) / 2,
+    );
+  });
+
   it("clamps pointer movement outside the axis bounds", () => {
     const { slider } = mount("horizontal");
     act(() => {

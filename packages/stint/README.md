@@ -88,6 +88,17 @@ and future-dated entries. The component surfaces the same set through
 Integrations stay generic. The package emits feedback events and exposes render
 slots; concrete haptics, text-morphing, and image primitives belong to you.
 
+On a horizontal axis, the rail and ruler live in a component-owned horizontal
+scroll viewport, so month labels keep their spacing on narrow screens. The
+default track is `560px` wide; tune it from the host only when your timeline
+needs more or less density:
+
+```css
+.stint {
+  --stint-horizontal-min-width: 640px;
+}
+```
+
 ## Hooks
 
 `useExperienceSelection`, `useResponsiveOrientation`, and `useCurrentMonth` are

@@ -43,6 +43,13 @@ describe("transparent overflow masks (AE16)", () => {
     expect(styles).toContain("scrollbar-width: none");
   });
 
+  it("keeps horizontal tracks wide enough to scroll instead of collapsing labels", () => {
+    expect(styles).toContain(".stint__timeline");
+    expect(styles).toContain("overflow-x: auto");
+    expect(styles).toContain("--stint-horizontal-min-width: 560px");
+    expect(styles).toContain("min-width: var(--stint-horizontal-min-width)");
+  });
+
   it("keeps the mask on an inner field so the ruler focus ring is unmasked", () => {
     expect(styles).toMatch(/\.stint__ruler:focus-visible\s*\{[^}]*outline:/);
     // The mask rules target the tick field, never the ruler itself.

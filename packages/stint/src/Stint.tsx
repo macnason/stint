@@ -733,8 +733,9 @@ function StintTimeline({
     const c = frameContext.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
+    const scrollOffset = c.horizontal ? (el.parentElement?.scrollLeft ?? 0) : 0;
     const fraction = c.horizontal
-      ? (event.clientX - rect.left) / Math.max(1, rect.width)
+      ? (event.clientX - rect.left + scrollOffset) / Math.max(1, rect.width)
       : 1 - (event.clientY - rect.top) / Math.max(1, rect.height);
     const month = c.axis.min + fraction * c.axis.span;
     s.targetMonth = Math.min(
@@ -964,118 +965,122 @@ function StintTimeline({
     >
       {readout}
 
-      {/* Logo rail — marks where each entry sits on the timeline */}
-      <div
-        className={cx("stint__rail", classNames?.rail)}
-        onPointerMove={onScrubMove}
-        onPointerDown={onScrubDown}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-      >
-        {config.entries.map((railEntry, index) => (
-          <div
-            key={railEntry.id}
-            className="stint__logoShell"
-            style={
-              {
-                "--stint-p": fractionFor(
-                  axis,
-                  (railEntry.startIndex + railEntry.endIndexExclusive) / 2,
-                ),
-              } as CSSProperties
-            }
-          >
-            <button
-              ref={(el) => {
-                logoRefs.current[index] = el;
-              }}
-              type="button"
-              className={cx("stint__logo", classNames?.logo)}
-              data-active={railEntry.id === displayEntry?.id || undefined}
-              aria-label={`${railEntry.company}, ${formatExperienceRange(railEntry, { locale, currentLabel: currentLabelText })}`}
-              aria-pressed={railEntry.id === displayEntry?.id}
-              onClick={() => {
-                const mid = Math.floor(
-                  (railEntry.startIndex + railEntry.endIndexExclusive - 1) / 2,
-                );
-                const month = indexToMonth(mid);
-                const previous = frameContext.current.activeEntryId;
-                propose({ month, entryId: railEntry.id }, "logo");
-                state.current.targetMonth = mid + 0.5;
-                ensureLoop();
-                if (previous !== railEntry.id) {
-                  emit({
-                    type: "entry-change",
-                    month,
-                    entryId: railEntry.id,
-                    previousEntryId: previous,
-                    source: "logo",
-                  });
-                }
-              }}
-              onPointerEnter={() => syncScale(index)}
-              onPointerLeave={() => syncScale(index)}
+      {/* Rail and ruler share a horizontal viewport so a narrow host never
+          compresses calendar labels into each other. */}
+      <div className="stint__timeline">
+        {/* Logo rail — marks where each entry sits on the timeline */}
+        <div
+          className={cx("stint__rail", classNames?.rail)}
+          onPointerMove={onScrubMove}
+          onPointerDown={onScrubDown}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          {config.entries.map((railEntry, index) => (
+            <div
+              key={railEntry.id}
+              className="stint__logoShell"
+              style={
+                {
+                  "--stint-p": fractionFor(
+                    axis,
+                    (railEntry.startIndex + railEntry.endIndexExclusive) / 2,
+                  ),
+                } as CSSProperties
+              }
             >
-              {renderLogo({
-                entry: railEntry,
-                isActive: railEntry.id === displayEntry?.id,
-                size: 30,
-              })}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Ruler — the slider surface */}
-      <div
-        ref={rulerRef}
-        role="slider"
-        tabIndex={0}
-        aria-label={labels?.slider ?? "Scrub through work experience by month"}
-        aria-valuemin={0}
-        aria-valuemax={axis.lastIndex - axis.firstIndex}
-        aria-valuenow={committedMonthIndex - axis.firstIndex}
-        aria-valuetext={valueText}
-        aria-orientation={resolved}
-        className={cx("stint__ruler", classNames?.ruler)}
-        data-at-oldest={atOldest || undefined}
-        data-at-newest={atNewest || undefined}
-        onPointerMove={onScrubMove}
-        onPointerDown={onScrubDown}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onLostPointerCapture={endDrag}
-        onFocus={() => engage("keyboard")}
-        onBlur={() => {
-          state.current.engagedCount = 0;
-          if (!isTouchLike(state.current.lastPointerType)) settle("keyboard");
-        }}
-        onKeyDown={onKeyDown}
-      >
-        <div className="stint__tickField" aria-hidden="true">
-          {ticks.map((tick, index) => (
-            <div key={tick.index} className="stint__tickGroup">
-              <div
+              <button
                 ref={(el) => {
-                  tickRefs.current[index] = el;
+                  logoRefs.current[index] = el;
                 }}
-                className={cx("stint__tick", classNames?.tick)}
-                data-major={tick.major || undefined}
-                style={{ "--stint-p": tick.fraction } as CSSProperties}
-              />
-              {tick.major && (
-                <span
-                  ref={(el) => {
-                    if (el) labelRefs.current.set(tick.year, el);
-                  }}
-                  className={cx("stint__tickLabel", classNames?.tickLabel)}
-                  style={{ "--stint-p": tick.fraction } as CSSProperties}
-                >
-                  {tick.year}
-                </span>
-              )}
+                type="button"
+                className={cx("stint__logo", classNames?.logo)}
+                data-active={railEntry.id === displayEntry?.id || undefined}
+                aria-label={`${railEntry.company}, ${formatExperienceRange(railEntry, { locale, currentLabel: currentLabelText })}`}
+                aria-pressed={railEntry.id === displayEntry?.id}
+                onClick={() => {
+                  const mid = Math.floor(
+                    (railEntry.startIndex + railEntry.endIndexExclusive - 1) / 2,
+                  );
+                  const month = indexToMonth(mid);
+                  const previous = frameContext.current.activeEntryId;
+                  propose({ month, entryId: railEntry.id }, "logo");
+                  state.current.targetMonth = mid + 0.5;
+                  ensureLoop();
+                  if (previous !== railEntry.id) {
+                    emit({
+                      type: "entry-change",
+                      month,
+                      entryId: railEntry.id,
+                      previousEntryId: previous,
+                      source: "logo",
+                    });
+                  }
+                }}
+                onPointerEnter={() => syncScale(index)}
+                onPointerLeave={() => syncScale(index)}
+              >
+                {renderLogo({
+                  entry: railEntry,
+                  isActive: railEntry.id === displayEntry?.id,
+                  size: 30,
+                })}
+              </button>
             </div>
           ))}
+        </div>
+
+        {/* Ruler — the slider surface */}
+        <div
+          ref={rulerRef}
+          role="slider"
+          tabIndex={0}
+          aria-label={labels?.slider ?? "Scrub through work experience by month"}
+          aria-valuemin={0}
+          aria-valuemax={axis.lastIndex - axis.firstIndex}
+          aria-valuenow={committedMonthIndex - axis.firstIndex}
+          aria-valuetext={valueText}
+          aria-orientation={resolved}
+          className={cx("stint__ruler", classNames?.ruler)}
+          data-at-oldest={atOldest || undefined}
+          data-at-newest={atNewest || undefined}
+          onPointerMove={onScrubMove}
+          onPointerDown={onScrubDown}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={endDrag}
+          onFocus={() => engage("keyboard")}
+          onBlur={() => {
+            state.current.engagedCount = 0;
+            if (!isTouchLike(state.current.lastPointerType)) settle("keyboard");
+          }}
+          onKeyDown={onKeyDown}
+        >
+          <div className="stint__tickField" aria-hidden="true">
+            {ticks.map((tick, index) => (
+              <div key={tick.index} className="stint__tickGroup">
+                <div
+                  ref={(el) => {
+                    tickRefs.current[index] = el;
+                  }}
+                  className={cx("stint__tick", classNames?.tick)}
+                  data-major={tick.major || undefined}
+                  style={{ "--stint-p": tick.fraction } as CSSProperties}
+                />
+                {tick.major && (
+                  <span
+                    ref={(el) => {
+                      if (el) labelRefs.current.set(tick.year, el);
+                    }}
+                    className={cx("stint__tickLabel", classNames?.tickLabel)}
+                    style={{ "--stint-p": tick.fraction } as CSSProperties}
+                  >
+                    {tick.year}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

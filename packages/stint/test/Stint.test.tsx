@@ -84,10 +84,11 @@ describe("<Stint /> rendering", () => {
       <Stint data={makeConfig()} currentMonth={fixed} orientation="horizontal" />,
     );
     const root = container.firstElementChild!;
-    const children = [...root.children].map((el) => el.className);
-    expect(children[0]).toContain("stint__readout");
-    expect(children[1]).toContain("stint__rail");
-    expect(children[2]).toContain("stint__ruler");
+    expect(root.firstElementChild?.className).toContain("stint__readout");
+    const timeline = root.querySelector(".stint__timeline")!;
+    const children = [...timeline.children].map((el) => el.className);
+    expect(children[0]).toContain("stint__rail");
+    expect(children[1]).toContain("stint__ruler");
     expect(root.getAttribute("data-axis")).toBe("horizontal");
   });
 
