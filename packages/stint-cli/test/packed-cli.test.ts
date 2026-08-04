@@ -133,11 +133,11 @@ describe("packed CLI", () => {
     ]);
     expect(plan.installPlan).toMatchObject({
       packageName: "@macworks/stint",
-      version: "1.0.0-next.2",
+      version: "1.0.0-next.3",
     });
     expect(() => readFileSync(join(consumer, "stint.config.json"))).toThrow();
 
-    manifest.dependencies = { "@macworks/stint": "1.0.0-next.2" };
+    manifest.dependencies = { "@macworks/stint": "1.0.0-next.3" };
     writeFileSync(join(consumer, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
     const applied = JSON.parse(
