@@ -15,15 +15,18 @@ export async function releaseCandidate({ channel, manifestPath, runNpm = execute
   const manifest = JSON.parse(readFileSync(absoluteManifestPath, "utf8"));
   validateManifest(manifest, channel, directory);
 
-  const snapshots = await snapshotTags(manifest.packages, runNpm);
+  const snapshots = channel === "latest"
+    ? await snapshotTags(manifest.packages, runNpm)
+    : new Map();
   const changed = new Set();
   try {
     if (channel === "next") {
-      await publishNext(manifest.packages, directory, changed, runNpm);
+      await publishNext(manifest.packages, directory, runNpm);
     } else {
       await promoteLatest(manifest.packages, directory, changed, runNpm);
     }
   } catch (error) {
+    if (channel === "next") throw error;
     const restoreErrors = await restoreTags(
       manifest.packages,
       channel,
@@ -41,7 +44,7 @@ export async function releaseCandidate({ channel, manifestPath, runNpm = execute
   }
 }
 
-async function publishNext(packages, directory, changed, runNpm) {
+async function publishNext(packages, directory, runNpm) {
   const existing = new Map();
   for (const candidate of packages) {
     const integrity = await registryIntegrity(candidate, runNpm, true);
@@ -53,8 +56,7 @@ async function publishNext(packages, directory, changed, runNpm) {
 
   for (const candidate of packages) {
     if (!existing.get(candidate.name)) {
-      changed.add(candidate.name);
-      const output = await runNpm([
+      await runNpm([
         "publish",
         "--provenance",
         "--access",
@@ -64,14 +66,15 @@ async function publishNext(packages, directory, changed, runNpm) {
         "--json",
         resolve(directory, candidate.file),
       ]);
-      verifyPublishResult(output, candidate);
       const publishedIntegrity = await registryIntegrity(candidate, runNpm, false);
       if (publishedIntegrity !== candidate.integrity) {
         throw new Error(`${candidate.name}@${candidate.version} registry integrity mismatch`);
       }
     }
-    changed.add(candidate.name);
-    await runNpm(["dist-tag", "add", `${candidate.name}@${candidate.version}`, "next"]);
+    const tags = await readTags(candidate.name, runNpm, false);
+    if (tags.next !== candidate.version) {
+      throw new Error(`${candidate.name} next tag does not reference ${candidate.version}`);
+    }
   }
 }
 
@@ -185,15 +188,6 @@ function verifyCandidateBytes(candidate, directory) {
   const integrity = `sha512-${createHash("sha512").update(bytes).digest("base64")}`;
   if (sha256 !== candidate.sha256 || integrity !== candidate.integrity) {
     throw new Error(`${candidate.name}@${candidate.version} candidate bytes do not match its manifest`);
-  }
-}
-
-function verifyPublishResult(output, candidate) {
-  const parsed = JSON.parse(output);
-  const result = Array.isArray(parsed) ? parsed[0] : parsed;
-  const expected = `${candidate.name}@${candidate.version}`;
-  if (result?.id !== expected && `${result?.name}@${result?.version}` !== expected) {
-    throw new Error(`npm publish result does not match ${expected}`);
   }
 }
 
