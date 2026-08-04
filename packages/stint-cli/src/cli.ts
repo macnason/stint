@@ -3,11 +3,14 @@
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
+import { createInterface } from "node:readline/promises";
 
 import { addCommand } from "./commands/add.js";
 import { helpCommand } from "./commands/help.js";
 import { importCommand } from "./commands/import.js";
 import { initCommand } from "./commands/init.js";
+import { doctorCommand } from "./commands/doctor.js";
+import { setupCommand } from "./commands/setup.js";
 import type { CliIo, CommandResult } from "./commands/types.js";
 import { validateCommand } from "./commands/validate.js";
 import { asCliError, publicCliError, CliError } from "./diagnostics.js";
@@ -23,6 +26,14 @@ const processIo: CliIo = {
   },
   writeError(value) {
     process.stderr.write(value);
+  },
+  async prompt(message) {
+    const readline = createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      return await readline.question(message);
+    } finally {
+      readline.close();
+    }
   },
 };
 
@@ -41,7 +52,7 @@ export async function runCli(
     const result =
       command !== "help" && options.flags.has("help")
         ? helpCommand(options, [command, ...options.positionals])
-        : await dispatch(command, options, io.isTTY);
+        : await dispatch(command, options, io);
     writeSuccess(io, result, json || options.flags.has("json"));
     return 0;
   } catch (error) {
@@ -54,17 +65,21 @@ export async function runCli(
 async function dispatch(
   command: string,
   options: ReturnType<typeof parseOptions>,
-  isTTY: boolean
+  io: CliIo,
 ): Promise<CommandResult> {
   switch (command) {
+    case "setup":
+      return setupCommand(options, io);
+    case "doctor":
+      return doctorCommand(options);
     case "init":
-      return initCommand(options, isTTY);
+      return initCommand(options, io.isTTY);
     case "add":
-      return addCommand(options, isTTY);
+      return addCommand(options, io.isTTY, io);
     case "validate":
       return validateCommand(options);
     case "import":
-      return importCommand(options, isTTY);
+      return importCommand(options, io.isTTY);
     case "help":
       return helpCommand(options);
     default:

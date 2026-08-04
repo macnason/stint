@@ -6,7 +6,7 @@ import {
 
 import { assertValidConfig, canonicalJson, currentUtcMonth } from "../config.js";
 import { CliError } from "../diagnostics.js";
-import { requireOption, type ParsedOptions } from "../options.js";
+import type { ParsedOptions } from "../options.js";
 import { resolveProject } from "../project.js";
 import {
   applyTransaction,
@@ -24,12 +24,17 @@ export const MUTATION_COMMON_VALUES = [
   "conflict",
 ] as const;
 
-export function mutationOptions(options: ParsedOptions, isTTY: boolean) {
-  const project = resolveProject(requireOption(options, "project"));
-  const configPath = requireOption(options, "config");
-  const dataPath = requireOption(options, "data");
+export function mutationOptions(
+  options: ParsedOptions,
+  isTTY: boolean,
+  settings: { readonly requireExplicitPaths?: boolean } = {},
+) {
+  const requireExplicitPaths = settings.requireExplicitPaths ?? true;
+  const project = resolveProject(options.values.project ?? ".");
+  const configPath = options.values.config ?? "stint.config.json";
+  const dataPath = options.values.data ?? "src/stint.data.ts";
   const rawConflict = options.values.conflict;
-  if (!isTTY && !rawConflict) {
+  if (!isTTY && requireExplicitPaths && !rawConflict) {
     throw new CliError(
       "E_REQUIRED_OPTION",
       "Non-interactive mutations require --conflict abort, skip, or overwrite.",

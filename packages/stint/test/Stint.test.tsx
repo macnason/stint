@@ -61,6 +61,18 @@ describe("<Stint /> rendering", () => {
     );
   });
 
+  it("uses the horizontal axis when orientation is omitted", () => {
+    const { container } = render(
+      <Stint data={makeConfig()} currentMonth={fixed} />,
+    );
+    const root = container.firstElementChild!;
+    expect(root.getAttribute("data-orientation")).toBe("horizontal");
+    expect(root.getAttribute("data-axis")).toBe("horizontal");
+    expect(screen.getByRole("slider").getAttribute("aria-orientation")).toBe(
+      "horizontal",
+    );
+  });
+
   it("renders nothing for invalid data and reports diagnostics", () => {
     const onDiagnostics = vi.fn();
     const { container } = render(

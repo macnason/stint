@@ -36,7 +36,7 @@ export async function importCommand(
       exitCode: 2,
     });
   }
-  const common = mutationOptions(options, isTTY);
+  const common = mutationOptions(options, isTTY, { requireExplicitPaths: false });
   const inputPath = resolve(options.positionals[0]!);
   const format = resolveFormat(inputPath, options.values.format);
   const source = readImportFile(inputPath, format);

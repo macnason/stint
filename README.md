@@ -23,7 +23,7 @@ npm install @macworks/stint
 
 ```text
 packages/stint/       React component, structural CSS, optional theme presets
-packages/stint-cli/   init / add / import / validate commands
+packages/stint-cli/   setup / doctor / add / import / validate commands
 fixtures/             Clean Vite 18, Vite 19, and Next App Router consumers
 tests/package/        Packed-tarball, bundle-size, and release-policy gates
 scripts/              Release preflight, gate recording, and publish helpers

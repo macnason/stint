@@ -7,6 +7,9 @@ export type CliErrorCode =
   | "E_CONFIG_PARSE"
   | "E_DUPLICATE_ID"
   | "E_ARCHIVE"
+  | "E_ANSWERS"
+  | "E_ANSWERS_LIMIT"
+  | "E_BROWSER"
   | "E_IMPORT_FORMAT"
   | "E_IMPORT_LIMIT"
   | "E_IMPORT_PARSE"
@@ -16,7 +19,8 @@ export type CliErrorCode =
   | "E_OPTION"
   | "E_PROJECT"
   | "E_REQUIRED_OPTION"
-  | "E_SECURITY";
+  | "E_SECURITY"
+  | "E_URL";
 
 export class CliError extends Error {
   readonly code: CliErrorCode;

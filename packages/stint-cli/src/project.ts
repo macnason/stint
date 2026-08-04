@@ -8,13 +8,37 @@ import {
   realpathSync,
   statSync,
 } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { CliError } from "./diagnostics.js";
 
 export interface ProjectContext {
   readonly root: string;
   readonly manifestPath: string;
+  readonly manifest?: Readonly<Record<string, unknown>>;
+}
+
+export interface ProjectInspection {
+  readonly project: ProjectContext;
+  readonly framework: "next" | "vite" | "unknown";
+  readonly packageManager: "npm" | "pnpm" | "yarn" | "bun" | "unknown";
+  readonly workspaceRoot: string;
+  readonly existingStintDependency: boolean;
+  readonly likelyConfigPath: string;
+  readonly likelyDataPath: string;
+  readonly existingFiles: readonly string[];
+  readonly ambiguities: readonly string[];
+}
+
+export interface PublicProjectInspection {
+  readonly root: string;
+  readonly framework: ProjectInspection["framework"];
+  readonly packageManager: ProjectInspection["packageManager"];
+  readonly existingStintDependency: boolean;
+  readonly likelyConfigPath: string;
+  readonly likelyDataPath: string;
+  readonly existingFiles: readonly string[];
+  readonly ambiguities: readonly string[];
 }
 
 export interface PathSnapshot {
@@ -65,7 +89,103 @@ export function resolveProject(projectPath: string): ProjectContext {
   return {
     root,
     manifestPath,
+    manifest: manifest as Readonly<Record<string, unknown>>,
   };
+}
+
+/** Find the nearest package project without requiring callers to supply paths. */
+export function discoverProject(startPath = process.cwd()): ProjectContext {
+  let current = realpathSync(resolve(startPath));
+  if (!statSync(current).isDirectory()) current = dirname(current);
+  for (;;) {
+    try {
+      return resolveProject(current);
+    } catch (error) {
+      if (!(error instanceof CliError) || !isMissing(error.cause)) throw error;
+    }
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  throw new CliError("E_PROJECT", "No package.json project was found in the current directory or its ancestors.");
+}
+
+export function inspectProject(startPath = process.cwd()): ProjectInspection {
+  const project = discoverProject(startPath);
+  const manifest = project.manifest ?? {};
+  const dependencies = {
+    ...asRecord(manifest.dependencies),
+    ...asRecord(manifest.devDependencies),
+  };
+  const framework =
+    typeof dependencies.next === "string"
+      ? "next"
+      : typeof dependencies.vite === "string"
+        ? "vite"
+        : "unknown";
+  const packageManager = detectPackageManager(project.root);
+  const existingStintDependency =
+    typeof dependencies["@macworks/stint"] === "string" ||
+    typeof dependencies["@macworks/stint-cli"] === "string";
+  const likelyConfigPath = "stint.config.json";
+  const likelyDataPath = "src/stint.data.ts";
+  const existingFiles = [likelyConfigPath, likelyDataPath].filter((path) => {
+    try {
+      return lstatSync(join(project.root, path)).isFile();
+    } catch {
+      return false;
+    }
+  });
+  const ambiguities = framework === "unknown" ? ["framework"] : [];
+  return {
+    project,
+    framework,
+    packageManager,
+    workspaceRoot: project.root,
+    existingStintDependency,
+    likelyConfigPath,
+    likelyDataPath,
+    existingFiles,
+    ambiguities,
+  };
+}
+
+export function publicProjectInspection(inspection: ProjectInspection): PublicProjectInspection {
+  return {
+    root: inspection.project.root,
+    framework: inspection.framework,
+    packageManager: inspection.packageManager,
+    existingStintDependency: inspection.existingStintDependency,
+    likelyConfigPath: inspection.likelyConfigPath,
+    likelyDataPath: inspection.likelyDataPath,
+    existingFiles: inspection.existingFiles,
+    ambiguities: inspection.ambiguities,
+  };
+}
+
+function detectPackageManager(root: string): ProjectInspection["packageManager"] {
+  for (const [name, manager] of [
+    ["pnpm-lock.yaml", "pnpm"],
+    ["yarn.lock", "yarn"],
+    ["bun.lockb", "bun"],
+    ["bun.lock", "bun"],
+    ["package-lock.json", "npm"],
+  ] as const) {
+    try {
+      if (lstatSync(join(root, name)).isFile()) return manager;
+    } catch {
+      // Continue through the lockfile candidates.
+    }
+  }
+  return "npm";
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 export function prepareDestination(
