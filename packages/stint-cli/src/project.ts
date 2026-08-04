@@ -25,7 +25,7 @@ export interface ProjectInspection {
   readonly workspaceRoot: string;
   readonly existingStintDependency: boolean;
   readonly likelyConfigPath: string;
-  readonly likelyDataPath: string;
+  readonly likelyDataPath?: string;
   readonly existingFiles: readonly string[];
   readonly ambiguities: readonly string[];
 }
@@ -36,7 +36,7 @@ export interface PublicProjectInspection {
   readonly packageManager: ProjectInspection["packageManager"];
   readonly existingStintDependency: boolean;
   readonly likelyConfigPath: string;
-  readonly likelyDataPath: string;
+  readonly likelyDataPath?: string;
   readonly existingFiles: readonly string[];
   readonly ambiguities: readonly string[];
 }
@@ -128,15 +128,21 @@ export function inspectProject(startPath = process.cwd()): ProjectInspection {
     typeof dependencies["@macworks/stint"] === "string" ||
     typeof dependencies["@macworks/stint-cli"] === "string";
   const likelyConfigPath = "stint.config.json";
-  const likelyDataPath = "src/stint.data.ts";
-  const existingFiles = [likelyConfigPath, likelyDataPath].filter((path) => {
+  const likelyDataPath = inferDataPath(project.root, framework);
+  const inferredPaths = [likelyConfigPath, likelyDataPath].filter(
+    (path): path is string => path !== undefined,
+  );
+  const existingFiles = inferredPaths.filter((path) => {
     try {
       return lstatSync(join(project.root, path)).isFile();
     } catch {
       return false;
     }
   });
-  const ambiguities = framework === "unknown" ? ["framework"] : [];
+  const ambiguities = [
+    ...(framework === "unknown" ? ["framework"] : []),
+    ...(likelyDataPath ? [] : ["dataPath"]),
+  ];
   return {
     project,
     framework,
@@ -148,6 +154,30 @@ export function inspectProject(startPath = process.cwd()): ProjectInspection {
     existingFiles,
     ambiguities,
   };
+}
+
+function inferDataPath(
+  root: string,
+  framework: ProjectInspection["framework"],
+): string | undefined {
+  if (framework === "unknown") return undefined;
+  if (framework === "vite") {
+    return isDirectory(join(root, "src")) ? "src/stint.data.ts" : undefined;
+  }
+  const appDirectories = ["src/app", "app"].filter((path) =>
+    isDirectory(join(root, path)),
+  );
+  return appDirectories.length === 1
+    ? `${appDirectories[0]}/stint.data.ts`
+    : undefined;
+}
+
+function isDirectory(path: string): boolean {
+  try {
+    return lstatSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 export function publicProjectInspection(inspection: ProjectInspection): PublicProjectInspection {

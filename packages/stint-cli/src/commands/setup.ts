@@ -25,6 +25,8 @@ const SETUP_VALUES = [
   "url",
 ] as const;
 
+const LINKEDIN_PRIVACY_MESSAGE = "We don't send your profile or project data to Stint servers; setup runs on your device. The visible browser connects directly to LinkedIn, and you sign in there yourself. Stint never enters passwords, MFA, or CAPTCHA.";
+
 export async function setupCommand(
   options: ParsedOptions,
   io: CliIo,
@@ -79,7 +81,7 @@ export async function setupCommand(
         };
       }
       if (choice === "3") {
-        return browserState("needs_linkedin_consent", inspection, "The LinkedIn browser importer is experimental and requires explicit consent.");
+        return browserState("needs_linkedin_consent", inspection, LINKEDIN_PRIVACY_MESSAGE);
       }
     }
     return {
@@ -98,7 +100,7 @@ export async function setupCommand(
     validateLinkedInProfileUrl(url ?? "");
     const consent = answers?.consent?.linkedinBrowser === true || options.flags.has("experimental-browser");
     if (!consent) {
-      return browserState("needs_linkedin_consent", inspection, "We don't send your profile or project data to Stint servers; setup runs on your device. The visible browser connects directly to LinkedIn, and you sign in there.");
+      return browserState("needs_linkedin_consent", inspection, LINKEDIN_PRIVACY_MESSAGE);
     }
     if (!io.isTTY || !io.prompt) {
       return browserState("waiting_for_browser_sign_in", inspection, "Run the consented browser step from a terminal so you can sign in visibly; Stint never receives your credentials.", "rerun_in_tty");
@@ -155,10 +157,26 @@ async function runFileImport(
   answers?: SetupAnswers,
 ): Promise<CommandResult> {
   const apply = answers?.apply === true || options.flags.has("apply");
+  const supportedIntegration = inspection.framework === "next" || inspection.framework === "vite";
+  if (!supportedIntegration || !inspection.likelyDataPath) {
+    return {
+      payload: {
+        ok: true,
+        state: "complete_with_handoff",
+        applied: false,
+        projectInspection: publicProjectInspection(inspection),
+        privacy: "File parsing stays on this device and does not call Stint servers.",
+        handoff: "Choose and review the integration and data-module paths for this project, then use `stint import` with explicit --config and --data paths.",
+      },
+      human: "The project needs a manual integration handoff. No paths were guessed and no files were written.",
+    };
+  }
   const importOptions: ParsedOptions = {
     positionals: [resolve(inspection.project.root, sourcePath)],
     values: {
       ...options.values,
+      config: options.values.config ?? inspection.likelyConfigPath,
+      data: options.values.data ?? inspection.likelyDataPath,
       ...(answers?.project?.path ? { project: answers.project.path } : {}),
       ...(answers?.conflict ? { conflict: answers.conflict } : {}),
       ...(answers?.source?.path ? { source: answers.source.path } : {}),
@@ -172,10 +190,9 @@ async function runFileImport(
     Object.entries(importOptions.values).filter(([key]) => !["answers", "source", "url"].includes(key)),
   );
   const normalizedImportOptions: ParsedOptions = { ...importOptions, values: importValues };
-  const supportedIntegration = inspection.framework === "next" || inspection.framework === "vite";
   const autoIntegration = answers?.integration?.mode !== "handoff";
   const installPlan = autoIntegration && supportedIntegration && !inspection.existingStintDependency && inspection.packageManager !== "unknown"
-    ? planPackageInstall(inspection.packageManager, "@macworks/stint", "1.0.0-next.1")
+    ? planPackageInstall(inspection.packageManager, "@macworks/stint", "1.0.0-next.2")
     : undefined;
   let installReceiptPayload = installPlan ? installReceipt(installPlan, "planned") : undefined;
   let result: CommandResult;
@@ -201,9 +218,7 @@ async function runFileImport(
     result = await importCommand(normalizedImportOptions, false);
   }
   const state = apply
-    ? supportedIntegration
-      ? installPlan ? "complete_with_handoff" : "complete"
-      : "complete_with_handoff"
+    ? "complete"
     : "ready_to_apply";
   return {
     payload: {
@@ -212,18 +227,9 @@ async function runFileImport(
       projectInspection: publicProjectInspection(inspection),
       privacy: "File parsing stays on this device and does not call Stint servers.",
       ...(installPlan && installReceiptPayload ? { installPlan, installReceipt: installReceiptPayload } : {}),
-      ...(supportedIntegration
-        ? installPlan
-          ? { handoff: `Run the reviewed ${installPlan.command} install plan, then rerun setup to complete the consumer integration.` }
-          : {}
-        : {
-            handoff: "Add the Stint dependency and render the generated data module in the detected application entry point.",
-          }),
     },
     human: apply
-      ? supportedIntegration
-        ? result.human
-        : `${result.human} The project needs a manual integration handoff.`
+      ? result.human
       : `${result.human} Review the plan, then rerun with --apply or answers.apply=true.`,
   };
 }

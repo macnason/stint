@@ -13,5 +13,7 @@ describe("canonical agent guide", () => {
     expect(agentGuideMarkdown).toContain("complete_with_handoff");
     expect(agentGuideMarkdown).toContain("visible browser");
     expect(agentGuideMarkdown).toContain("we don't send your profile or project data to Stint servers");
+    expect(agentPrompt).toContain("the person signs in there");
+    expect(agentPrompt).toContain("Never enter passwords, MFA, or CAPTCHA");
   });
 });
