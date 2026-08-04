@@ -174,6 +174,34 @@ If a `latest` dispatch fails on `dist-tag`, check `npm dist-tag ls PACKAGE_NAME`
 before retrying. A maintainer credential that authorizes tag changes is required;
 trusted publishing alone cannot perform that promotion.
 
+The helper now names this explicitly rather than surfacing a bare `E401`. On an
+unauthorized tag write it fails with the exact `npm dist-tag add` command to run
+locally, and it no longer rolls back tags it never wrote — a promotion that fails
+on the first package changes nothing, so there is nothing to restore.
+
+## Registry reads are eventually consistent
+
+Every `next` dispatch between run 30874905688 and run 30906010645 failed after a
+*successful* publish, with `npm view PACKAGE@VERSION dist.integrity` returning
+`E404 No match found for version`. The bytes were always correct; the read was too
+early.
+
+`registry.npmjs.org` serves packuments through a CDN that stamps
+`cache-control: public, max-age=300`, while publishes land on the origin. The
+helper's own pre-publish existence check warms an edge with a packument that does
+not contain the new version, and that edge can keep serving it for up to five
+minutes after the publish succeeds. The helper read back roughly three seconds
+later, so it failed deterministically rather than intermittently — which is why the
+same error recurred on every dispatch.
+
+`npm view` already sets `preferOnline`, so this is not the local npm cache and no
+cache flag fixes it. The only reliable remedy is to wait. Every read that must
+observe our own write now polls with exponential backoff over a budget that
+deliberately exceeds the 300s max-age (`DEFAULT_VISIBILITY` in
+`scripts/stint-release.mjs`, ~9 minutes); the publish job's `timeout-minutes` must
+stay above that budget. Reads that establish pre-existing state are not retried,
+and mismatched bytes still fail immediately, since corruption is not lag.
+
 ## Promoting `latest`
 
 `latest` is a separate manual dispatch. It promotes the already published, verified

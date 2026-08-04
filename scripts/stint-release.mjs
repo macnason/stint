@@ -6,10 +6,31 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export async function releaseCandidate({ channel, manifestPath, runNpm = executeNpm }) {
+// registry.npmjs.org is read-after-write eventually consistent: publishes land on
+// the origin, but packument GETs are served from a CDN that stamps
+// `cache-control: public, max-age=300`. The pre-publish existence check below warms
+// an edge with a packument that does not contain the new version, and that edge can
+// keep serving it for up to five minutes after `npm publish` has already succeeded.
+// Every read that has to observe our own write therefore polls instead of failing on
+// the first miss. The budget deliberately exceeds the 300s max-age.
+export const DEFAULT_VISIBILITY = {
+  attempts: 14,
+  initialDelayMs: 2000,
+  maxDelayMs: 60000,
+};
+
+export async function releaseCandidate({
+  channel,
+  manifestPath,
+  runNpm = executeNpm,
+  visibility = DEFAULT_VISIBILITY,
+  sleep = defaultSleep,
+  log = (message) => console.error(`stint release: ${message}`),
+}) {
   if (!["next", "latest"].includes(channel)) {
     throw new Error(`unsupported channel: ${channel}`);
   }
+  const waitFor = createVisibilityWaiter({ visibility, sleep, log });
   const absoluteManifestPath = resolve(manifestPath);
   const directory = dirname(absoluteManifestPath);
   const manifest = JSON.parse(readFileSync(absoluteManifestPath, "utf8"));
@@ -21,9 +42,9 @@ export async function releaseCandidate({ channel, manifestPath, runNpm = execute
   const changed = new Set();
   try {
     if (channel === "next") {
-      await publishNext(manifest.packages, directory, runNpm);
+      await publishNext(manifest.packages, directory, runNpm, waitFor);
     } else {
-      await promoteLatest(manifest.packages, directory, changed, runNpm);
+      await promoteLatest(manifest.packages, directory, changed, runNpm, waitFor);
     }
   } catch (error) {
     if (channel === "next") throw error;
@@ -44,9 +65,11 @@ export async function releaseCandidate({ channel, manifestPath, runNpm = execute
   }
 }
 
-async function publishNext(packages, directory, runNpm) {
+async function publishNext(packages, directory, runNpm, waitFor) {
   const existing = new Map();
   for (const candidate of packages) {
+    // Not retried: a genuinely unpublished version must resolve immediately, and
+    // this read is what establishes whether the publish below is still needed.
     const integrity = await registryIntegrity(candidate, runNpm, true);
     if (integrity && integrity !== candidate.integrity) {
       throw new Error(`${candidate.name}@${candidate.version} exists with different bytes`);
@@ -66,34 +89,88 @@ async function publishNext(packages, directory, runNpm) {
         "--json",
         resolve(directory, candidate.file),
       ]);
-      const publishedIntegrity = await registryIntegrity(candidate, runNpm, false);
-      if (publishedIntegrity !== candidate.integrity) {
-        throw new Error(`${candidate.name}@${candidate.version} registry integrity mismatch`);
+      await waitFor(`${candidate.name}@${candidate.version} to be readable`, async () => {
+        const integrity = await registryIntegrity(candidate, runNpm, true);
+        if (integrity === undefined) return pending("version is not visible yet");
+        // Bytes that disagree are corruption, never propagation lag: fail now.
+        if (integrity !== candidate.integrity) {
+          throw new Error(`${candidate.name}@${candidate.version} registry integrity mismatch`);
+        }
+        return settled(integrity);
+      });
+    }
+    // `npm publish --tag next` sets the tag as part of the same write, so any
+    // disagreement here is a stale read of a write we already made. Wait it out.
+    await waitFor(`${candidate.name} next tag to reference ${candidate.version}`, async () => {
+      const tags = await readTags(candidate.name, runNpm, true);
+      if (tags.next !== candidate.version) {
+        return pending(`next tag still references ${tags.next ?? "nothing"}`);
       }
-    }
-    const tags = await readTags(candidate.name, runNpm, false);
-    if (tags.next !== candidate.version) {
-      throw new Error(`${candidate.name} next tag does not reference ${candidate.version}`);
-    }
+      return settled(tags.next);
+    });
   }
 }
 
-async function promoteLatest(packages, directory, changed, runNpm) {
+async function promoteLatest(packages, directory, changed, runNpm, waitFor) {
   for (const candidate of packages) {
     verifyCandidateBytes(candidate, directory);
-    const integrity = await registryIntegrity(candidate, runNpm, false);
+    const integrity = await waitFor(
+      `${candidate.name}@${candidate.version} to be readable`,
+      async () => {
+        const value = await registryIntegrity(candidate, runNpm, true);
+        return value === undefined ? pending("version is not visible yet") : settled(value);
+      },
+    );
     if (integrity !== candidate.integrity) {
       throw new Error(`${candidate.name}@${candidate.version} next bytes do not match the verified candidate`);
     }
-    const tags = await readTags(candidate.name, runNpm, false);
+    // Unlike the publish path this validates pre-existing state rather than our own
+    // write, so a tag that resolves to a different version is an error, not lag.
+    const tags = await waitFor(`${candidate.name} dist-tags to be readable`, async () => {
+      const value = await readTags(candidate.name, runNpm, true);
+      return value.next === undefined ? pending("dist-tags are not visible yet") : settled(value);
+    });
     if (tags.next !== candidate.version) {
       throw new Error(`${candidate.name} next tag does not reference ${candidate.version}`);
     }
   }
   for (const candidate of packages) {
+    try {
+      await runNpm(["dist-tag", "add", `${candidate.name}@${candidate.version}`, "latest"]);
+    } catch (error) {
+      throw isUnauthorized(error) ? unauthorizedPromotion(candidate, error) : error;
+    }
+    // Recorded only after the write lands. Marking it beforehand made a failed
+    // first promotion roll back a tag that was never touched, which turned one
+    // clear error into an AggregateError about failed restoration.
     changed.add(candidate.name);
-    await runNpm(["dist-tag", "add", `${candidate.name}@${candidate.version}`, "latest"]);
   }
+}
+
+// Trusted publishing performs its OIDC exchange inside `npm publish`; a separate
+// `npm dist-tag` process does not inherit that credential and gets a 401. This is
+// expected in CI and is not a misconfiguration to be fixed with a stored token —
+// see docs/release/stint.md. Promotion is a maintainer action.
+function unauthorizedPromotion(candidate, error) {
+  return new Error(
+    [
+      `cannot promote ${candidate.name}@${candidate.version} to latest: npm rejected the`,
+      "dist-tag write as unauthorized. Trusted publishing authenticates `npm publish`",
+      "only, so this workflow cannot move dist-tags and no npm token is stored in CI",
+      "by policy. Every promotion gate above has already passed and the candidate bytes",
+      "are verified, so a maintainer can complete the promotion locally:",
+      "",
+      `  npm dist-tag add ${candidate.name}@${candidate.version} latest`,
+      "",
+      "See docs/release/stint.md ('Promoting `latest`') for the full runbook.",
+      `Underlying npm error: ${error.message}`,
+    ].join("\n"),
+  );
+}
+
+function isUnauthorized(error) {
+  const output = `${error?.stderr ?? ""}\n${error?.message ?? ""}`;
+  return /E401|401 Unauthorized/i.test(output);
 }
 
 async function snapshotTags(packages, runNpm) {
@@ -123,6 +200,41 @@ async function restoreTags(packages, channel, snapshots, changed, runNpm) {
     }
   }
   return errors;
+}
+
+function settled(value) {
+  return { done: true, value };
+}
+
+function pending(reason) {
+  return { done: false, reason };
+}
+
+// Polls `read` until it reports settled. `read` signals "not yet consistent" by
+// returning pending(); anything it throws is treated as a real fault and aborts
+// immediately, so genuine failures still fail fast.
+function createVisibilityWaiter({ visibility, sleep, log }) {
+  const { attempts, initialDelayMs, maxDelayMs } = visibility;
+  return async function waitFor(description, read) {
+    let delay = initialDelayMs;
+    let reason = "no attempt was made";
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const outcome = await read();
+      if (outcome.done) return outcome.value;
+      reason = outcome.reason;
+      if (attempt === attempts) break;
+      log(`waiting for ${description} (${reason}); retry ${attempt}/${attempts - 1} in ${delay}ms`);
+      await sleep(delay);
+      delay = Math.min(delay * 2, maxDelayMs);
+    }
+    throw new Error(
+      `timed out after ${attempts} attempts waiting for ${description}: ${reason}`,
+    );
+  };
+}
+
+function defaultSleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function registryIntegrity(candidate, runNpm, allowMissing) {
