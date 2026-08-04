@@ -51,11 +51,6 @@ describe("packed CLI", () => {
         name: "stint-next-smoke",
         version: "1.0.0",
         private: true,
-        devDependencies: {
-          next: "16.0.0",
-          react: "19.2.1",
-          "react-dom": "19.2.1",
-        },
       }, null, 2)}\n`,
     );
     run(
@@ -74,6 +69,14 @@ describe("packed CLI", () => {
       ],
       consumer,
     );
+
+    const manifest = JSON.parse(readFileSync(join(consumer, "package.json"), "utf8"));
+    manifest.devDependencies = {
+      next: "16.0.0",
+      react: "19.2.1",
+      "react-dom": "19.2.1",
+    };
+    writeFileSync(join(consumer, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
     const npxStint = (args: readonly string[]) =>
       run("npx", ["--no-install", "stint", ...args], consumer);
@@ -134,7 +137,6 @@ describe("packed CLI", () => {
     });
     expect(() => readFileSync(join(consumer, "stint.config.json"))).toThrow();
 
-    const manifest = JSON.parse(readFileSync(join(consumer, "package.json"), "utf8"));
     manifest.dependencies = { "@macworks/stint": "1.0.0-next.2" };
     writeFileSync(join(consumer, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
