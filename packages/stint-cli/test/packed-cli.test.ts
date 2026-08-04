@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -43,11 +43,20 @@ afterAll(() => {
 });
 
 describe("packed CLI", () => {
-  it("installs local tarballs offline and exercises bin, help, init, validate, and import", () => {
+  it("installs local tarballs offline and exercises setup from a clean Next.js project", () => {
     const consumer = temporaryDirectory("stint-packed-consumer-");
     writeFileSync(
       join(consumer, "package.json"),
-      `${JSON.stringify({ name: "stint-offline-smoke", version: "1.0.0", private: true }, null, 2)}\n`,
+      `${JSON.stringify({
+        name: "stint-next-smoke",
+        version: "1.0.0",
+        private: true,
+        devDependencies: {
+          next: "16.0.0",
+          react: "19.2.1",
+          "react-dom": "19.2.1",
+        },
+      }, null, 2)}\n`,
     );
     run(
       "npm",
@@ -58,81 +67,94 @@ describe("packed CLI", () => {
         "--ignore-scripts",
         "--no-audit",
         "--no-fund",
+        "--no-save",
+        "--omit=dev",
         runtimeTarball,
         cliTarball,
       ],
       consumer,
     );
 
-    const bin = join(consumer, "node_modules/.bin/stint");
-    expect(run(bin, ["--help"], consumer)).toContain("stint import INPUT");
-    run(
-      bin,
-      [
-        "init",
-        "--project",
-        consumer,
-        "--config",
-        "stint.config.json",
-        "--data",
-        "src/stint.data.ts",
-        "--conflict",
-        "abort",
-        "--json",
-      ],
-      consumer,
-    );
-    const validation = JSON.parse(
-      run(
-        bin,
-        [
-          "validate",
-          "--project",
-          consumer,
-          "--config",
-          "stint.config.json",
-          "--reference-month",
-          "2026-07",
-          "--json",
-        ],
-        consumer,
-      ),
-    );
-    expect(validation).toMatchObject({ valid: true });
-
-    const positions = join(consumer, "Positions.csv");
+    const npxStint = (args: readonly string[]) =>
+      run("npx", ["--no-install", "stint", ...args], consumer);
+    expect(npxStint(["--help"])).toContain("stint import INPUT");
+    mkdirSync(join(consumer, "app"), { recursive: true });
     writeFileSync(
-      positions,
-      "Company Name,Title,Location,Started On,Finished On\nOffline Works,Designer,Remote,Jan 2024,\n",
-    );
-    const imported = JSON.parse(
-      run(
-        bin,
-        [
-          "import",
-          positions,
-          "--format",
-          "linkedin-csv",
-          "--project",
-          consumer,
-          "--config",
-          "stint.config.json",
-          "--data",
-          "src/stint.data.ts",
-          "--conflict",
-          "overwrite",
-          "--reference-month",
-          "2026-07",
-          "--json",
+      join(consumer, "profile.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        entries: [
+          {
+            id: "offline-works",
+            company: "Offline Works",
+            start: "2024-01",
+            end: null,
+            roles: [
+              {
+                id: "designer",
+                title: "Designer",
+                start: "2024-01",
+              },
+            ],
+          },
         ],
-        consumer,
-      ),
+      })}\n`,
     );
-    expect(imported).toMatchObject({ ok: true, importedEntries: 1 });
+    writeFileSync(
+      join(consumer, "answers.json"),
+      `${JSON.stringify({
+        version: 1,
+        project: { path: "." },
+        source: { kind: "file", path: "profile.json" },
+        review: { mode: "approve" },
+        conflict: "abort",
+        integration: { mode: "auto" },
+      })}\n`,
+    );
+
+    const plan = JSON.parse(
+      npxStint(["setup", "--answers", "answers.json", "--json"]),
+    );
+    expect(plan).toMatchObject({
+      state: "ready_to_apply",
+      dryRun: true,
+      projectInspection: {
+        framework: "next",
+        likelyConfigPath: "stint.config.json",
+        likelyDataPath: "app/stint.data.ts",
+      },
+    });
+    expect(plan.actions.map((action: { path: string }) => action.path)).toEqual([
+      "stint.config.json",
+      "app/stint.data.ts",
+    ]);
+    expect(plan.installPlan).toMatchObject({
+      packageName: "@macworks/stint",
+      version: "1.0.0-next.2",
+    });
+    expect(() => readFileSync(join(consumer, "stint.config.json"))).toThrow();
+
+    const manifest = JSON.parse(readFileSync(join(consumer, "package.json"), "utf8"));
+    manifest.dependencies = { "@macworks/stint": "1.0.0-next.2" };
+    writeFileSync(join(consumer, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+
+    const applied = JSON.parse(
+      npxStint([
+        "setup",
+        "--answers",
+        "answers.json",
+        "--apply",
+        "--json",
+      ]),
+    );
+    expect(applied).toMatchObject({ ok: true, state: "complete", importedEntries: 1 });
     expect(JSON.parse(readFileSync(join(consumer, "stint.config.json"), "utf8"))).toMatchObject({
       schemaVersion: 1,
       entries: [{ company: "Offline Works" }],
     });
+    expect(readFileSync(join(consumer, "app/stint.data.ts"), "utf8")).toContain(
+      "satisfies StintConfig",
+    );
   });
 });
 

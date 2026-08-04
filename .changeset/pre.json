@@ -6,6 +6,7 @@
     "@macworks/stint-cli": "1.0.0-next.0"
   },
   "changesets": [
-    "quiet-timelines-scrub"
+    "quiet-timelines-scrub",
+    "smooth-setup"
   ]
 }

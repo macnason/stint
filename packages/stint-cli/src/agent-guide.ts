@@ -1,5 +1,5 @@
 /** Canonical agent-facing setup contract. Keep downstream surfaces derived from this module. */
-export const stintCliVersion = "1.0.0-next.1" as const;
+export const stintCliVersion = "1.0.0-next.2" as const;
 export const setupInvocation = "npx @macworks/stint-cli setup --json" as const;
 export const setupSourceChoices = [
   "Import a file",

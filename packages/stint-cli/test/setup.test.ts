@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,6 +26,7 @@ function io(isTTY = false): CliIo & { stdout: string[]; stderr: string[] } {
 function project(): string {
   const root = mkdtempSync(join(tmpdir(), "stint-setup-"));
   directories.push(root);
+  mkdirSync(join(root, "src"), { recursive: true });
   writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "setup-fixture", dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.1" } })}\n`);
   writeFileSync(join(root, "profile.json"), `${JSON.stringify({ schemaVersion: 1, entries: [] })}\n`);
   return root;
@@ -84,7 +85,14 @@ describe("setup", () => {
     const root = project();
     const consent = io();
     expect(await runCli(["setup", "linkedin", "--url", "https://www.linkedin.com/in/example", "--project", root, "--json"], consent)).toBe(0);
-    expect(JSON.parse(consent.stdout.join(""))).toMatchObject({ state: "needs_linkedin_consent" });
+    expect(JSON.parse(consent.stdout.join(""))).toMatchObject({
+      state: "needs_linkedin_consent",
+      privacy: expect.stringContaining("We don't send your profile or project data to Stint servers; setup runs on your device."),
+    });
+    expect(consent.stdout.join(""))
+      .toContain("The visible browser connects directly to LinkedIn");
+    expect(consent.stdout.join(""))
+      .toContain("Stint never enters passwords, MFA, or CAPTCHA");
 
     const invalid = io();
     expect(await runCli(["setup", "linkedin", "--url", "http://example.com/profile", "--project", root, "--json"], invalid)).toBe(2);
@@ -110,6 +118,33 @@ describe("setup", () => {
     const output = io();
     expect(await runCli(["setup", "linkedin", "--url", "https://www.linkedin.com/in/example", "--experimental-browser", "--project", root, "--json"], output)).toBe(0);
     expect(JSON.parse(output.stdout.join(""))).toMatchObject({ state: "waiting_for_browser_sign_in", remediation: "rerun_in_tty" });
+  });
+
+  it("returns complete_with_handoff without guessing or writing paths for unsupported projects", async () => {
+    const root = mkdtempSync(join(tmpdir(), "stint-unsupported-"));
+    directories.push(root);
+    writeFileSync(join(root, "package.json"), "{}\n");
+    writeFileSync(
+      join(root, "profile.json"),
+      `${JSON.stringify({ schemaVersion: 1, entries: [] })}\n`,
+    );
+    const output = io();
+
+    expect(
+      await runCli(
+        ["setup", "profile.json", "--project", root, "--apply", "--json"],
+        output,
+      ),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      state: "complete_with_handoff",
+      projectInspection: {
+        framework: "unknown",
+        ambiguities: ["framework", "dataPath"],
+      },
+    });
+    expect(() => readFileSync(join(root, "stint.config.json"))).toThrow();
+    expect(() => readFileSync(join(root, "src/stint.data.ts"))).toThrow();
   });
 
   it("does not silently ignore session or rejected-review answers", async () => {
