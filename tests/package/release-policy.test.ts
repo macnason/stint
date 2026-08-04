@@ -35,6 +35,8 @@ describe("release workflow authority", () => {
     expect(workflow).toContain(`actions/checkout@${checkoutPin}`);
     expect(workflow).toContain(`actions/setup-node@${setupNodePin}`);
     expect(workflow).toContain("npm ci");
+    expect(workflow).toContain("Warm npm cache for offline consumer installs");
+    expect(workflow).toContain("npm install --no-save --package-lock=false $specs");
     expect(workflow).toContain("npm run lint");
     expect(workflow).toContain("npm run test --workspaces --if-present");
     expect(workflow).toContain("npm run test:policy");
