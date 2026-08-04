@@ -6,7 +6,14 @@ export interface ParsedOptions {
   readonly flags: ReadonlySet<string>;
 }
 
-const BOOLEAN_OPTIONS = new Set(["dry-run", "help", "json"]);
+const BOOLEAN_OPTIONS = new Set([
+  "apply",
+  "advanced",
+  "dry-run",
+  "experimental-browser",
+  "help",
+  "json",
+]);
 
 export function parseOptions(args: readonly string[]): ParsedOptions {
   const positionals: string[] = [];

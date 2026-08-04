@@ -8,7 +8,6 @@ import {
 import { CliError } from "../diagnostics.js";
 import {
   rejectUnknownOptions,
-  requireOption,
   type ParsedOptions,
 } from "../options.js";
 import { resolveProject } from "../project.js";
@@ -30,8 +29,8 @@ export function validateCommand(options: ParsedOptions): CommandResult {
       }
     );
   }
-  const project = resolveProject(requireOption(options, "project"));
-  const configPath = requireOption(options, "config");
+  const project = resolveProject(options.values.project ?? ".");
+  const configPath = options.values.config ?? "stint.config.json";
   const rawReference = options.values["reference-month"];
   const referenceMonth: MonthString = rawReference
     ? monthOption(rawReference, "reference-month")

@@ -38,6 +38,10 @@
     ".": {
       "types": "./dist/cli.d.ts",
       "import": "./dist/cli.js"
+    },
+    "./guide": {
+      "types": "./dist/agent-guide.d.ts",
+      "import": "./dist/agent-guide.js"
     }
   },
   "scripts": {

@@ -12,6 +12,18 @@ interface CommandDescription {
 
 const COMMANDS: readonly CommandDescription[] = [
   {
+    key: "setup",
+    usage: "stint setup [SOURCE] [--answers FILE|-] [--apply] [--json]",
+    description: "Discover the project, choose a source, preview, and apply a Stint setup.",
+    options: [
+      "SOURCE                    Local export/résumé path, or linkedin for the experimental browser path",
+      "--answers FILE|-          Versioned non-interactive choices",
+      "--apply                   Apply after the draft is reviewed",
+      "--experimental-browser   Explicitly opt into the visible LinkedIn browser",
+      "--json                    Emit machine-readable state output",
+    ],
+  },
+  {
     key: "init",
     usage:
       "stint init --project DIR --config FILE --data FILE --conflict POLICY [--dry-run] [--json]",
@@ -89,6 +101,15 @@ const COMMANDS: readonly CommandDescription[] = [
     ],
   },
   {
+    key: "doctor",
+    usage: "stint doctor [--project DIR] [--json]",
+    description: "Inspect the detected project, package manager, framework, and Stint targets.",
+    options: [
+      "--project DIR             Optional project root override",
+      "--json                   Emit machine-readable output",
+    ],
+  },
+  {
     key: "import",
     usage:
       "stint import INPUT --format auto|json|yaml|linkedin-csv|linkedin-zip --project DIR --config FILE --data FILE --conflict POLICY [--reference-month YYYY-MM] [--dry-run] [--json]",
@@ -115,7 +136,7 @@ export function helpCommand(
   options: ParsedOptions,
   topic: readonly string[] = []
 ): CommandResult {
-  rejectUnknownOptions(options, [], ["help", "json"]);
+  rejectUnknownOptions(options, [], ["advanced", "help", "json"]);
 
   if (topic.length > 0) {
     const key = topic.join(" ");
@@ -155,10 +176,10 @@ export function helpCommand(
   return {
     payload: {
       ok: true,
-      commands: COMMANDS.filter((command) => command.key !== "add").map(
+      commands: COMMANDS.filter((command) => options.flags.has("advanced") || command.key !== "init").map(
         (command) => command.key
       ),
-      usage: COMMANDS.map((command) => command.usage),
+      usage: COMMANDS.filter((command) => options.flags.has("advanced") || command.key !== "init").map((command) => command.usage),
       excluded: ["preview", "presentation scaffold"],
     },
     human: renderOverview(),
@@ -166,7 +187,7 @@ export function helpCommand(
 }
 
 function renderOverview(): string {
-  const usage = COMMANDS.filter((command) => command.key !== "add")
+  const usage = COMMANDS.filter((command) => command.key !== "init" && command.key !== "add")
     .map((command) => `  ${command.usage}`)
     .join("\n");
   return `stint - author canonical Stint experience data
@@ -174,13 +195,13 @@ function renderOverview(): string {
 Commands:
 ${usage}
 
-Conflict policies: abort (default in a TTY), skip, overwrite.
-Non-interactive mutations require complete path flags and an explicit policy.
+Quick setup infers project, config, data, format, current month, and abort-on-conflict defaults.
+Use stint help --advanced for legacy path, format, conflict, date, and field flags.
 Employer starts are inclusive; non-current employer ends are exclusive.
 The JSON configuration is canonical; TypeScript is generated as a typed literal.
 
-Imports are local-only and generate canonical JSON plus typed TypeScript atomically.
-Not included in this build: preview, presentation/UI wrapper, themes, tokens, or CSS scaffolding.
+File imports stay local-only and generate canonical JSON plus typed TypeScript atomically.
+LinkedIn browser import is experimental, visible, sign-in-only, and never sends data to Stint servers.
 `;
 }
 
