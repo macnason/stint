@@ -192,7 +192,7 @@ async function runFileImport(
   const normalizedImportOptions: ParsedOptions = { ...importOptions, values: importValues };
   const autoIntegration = answers?.integration?.mode !== "handoff";
   const installPlan = autoIntegration && supportedIntegration && !inspection.existingStintDependency && inspection.packageManager !== "unknown"
-    ? planPackageInstall(inspection.packageManager, "@macworks/stint", "1.0.0-next.2")
+    ? planPackageInstall(inspection.packageManager, "@macworks/stint", "1.0.0-next.3")
     : undefined;
   let installReceiptPayload = installPlan ? installReceipt(installPlan, "planned") : undefined;
   let result: CommandResult;

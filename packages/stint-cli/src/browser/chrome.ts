@@ -1,17 +1,37 @@
 import { accessSync, constants } from "node:fs";
-import { platform } from "node:os";
+import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
 
 import { CliError } from "../diagnostics.js";
 
-const MACOS_BROWSERS = [
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  "/Applications/Chromium.app/Contents/MacOS/Chromium",
+const MACOS_BROWSER_EXECUTABLES = [
+  "Google Chrome.app/Contents/MacOS/Google Chrome",
+  "Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+  "Chromium.app/Contents/MacOS/Chromium",
+  "Brave Browser.app/Contents/MacOS/Brave Browser",
+  "Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
 ];
-const LINUX_BROWSERS = ["google-chrome", "chromium", "chromium-browser"];
+const LINUX_BROWSERS = [
+  "google-chrome",
+  "google-chrome-stable",
+  "chromium",
+  "chromium-browser",
+  "brave-browser",
+  "microsoft-edge",
+];
+
+export function systemChromeCandidates(
+  platformName = platform(),
+  homeDirectory = homedir(),
+): readonly string[] {
+  if (platformName !== "darwin") return LINUX_BROWSERS;
+  return ["/Applications", join(homeDirectory, "Applications")].flatMap((directory) =>
+    MACOS_BROWSER_EXECUTABLES.map((executable) => join(directory, executable)),
+  );
+}
 
 export function findSystemChrome(): string {
-  const candidates = platform() === "darwin" ? MACOS_BROWSERS : LINUX_BROWSERS;
+  const candidates = systemChromeCandidates();
   for (const candidate of candidates) {
     if (candidate.includes("/")) {
       try {
