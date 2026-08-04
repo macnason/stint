@@ -212,9 +212,17 @@ async function main() {
   try {
     await releaseCandidate({ channel, manifestPath });
   } catch (error) {
-    console.error(`stint release: ${error.message}`);
+    console.error(`stint release: ${formatReleaseError(error)}`);
     process.exit(1);
   }
+}
+
+function formatReleaseError(error) {
+  if (error instanceof AggregateError) {
+    const causes = [...error.errors].map((cause) => cause?.message ?? String(cause));
+    return `${error.message}\n${causes.map((cause) => `- ${cause}`).join("\n")}`;
+  }
+  return error?.message ?? String(error);
 }
 
 function argument(name) {
