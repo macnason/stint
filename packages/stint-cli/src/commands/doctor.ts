@@ -1,4 +1,4 @@
-import { inspectProject } from "../project.js";
+import { inspectProject, publicProjectInspection } from "../project.js";
 import { CliError } from "../diagnostics.js";
 import { rejectUnknownOptions, type ParsedOptions } from "../options.js";
 import type { CommandResult } from "./types.js";
@@ -11,14 +11,7 @@ export function doctorCommand(options: ParsedOptions): CommandResult {
   const inspection = inspectProject(options.values.project ?? ".");
   const payload = {
     ok: true,
-    project: inspection.project.root,
-    framework: inspection.framework,
-    packageManager: inspection.packageManager,
-    existingStintDependency: inspection.existingStintDependency,
-    likelyConfigPath: inspection.likelyConfigPath,
-    likelyDataPath: inspection.likelyDataPath,
-    existingFiles: inspection.existingFiles,
-    ambiguities: inspection.ambiguities,
+    ...publicProjectInspection(inspection),
   };
   return {
     payload,

@@ -1,4 +1,5 @@
 import { CliError } from "../diagnostics.js";
+import { linkedinPrivacyNotice } from "../agent-guide.js";
 import { rejectUnknownOptions, type ParsedOptions } from "../options.js";
 import type { CommandResult } from "./types.js";
 
@@ -201,7 +202,7 @@ Employer starts are inclusive; non-current employer ends are exclusive.
 The JSON configuration is canonical; TypeScript is generated as a typed literal.
 
 File imports stay local-only and generate canonical JSON plus typed TypeScript atomically.
-LinkedIn browser import is experimental, visible, sign-in-only, and never sends data to Stint servers.
+${linkedinPrivacyNotice}
 `;
 }
 

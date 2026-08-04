@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { CliError } from "../diagnostics.js";
-import { readFileNoFollow } from "../project.js";
+import { isRecord, readFileNoFollow } from "../project.js";
 
 export interface SetupAnswers {
   readonly version: 1;
@@ -53,8 +53,4 @@ function containsForbiddenField(value: unknown): boolean {
     if (/password|cookie|credential|argv|raw(html|source)?|profile(path)?/i.test(key)) return true;
     return containsForbiddenField(child);
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

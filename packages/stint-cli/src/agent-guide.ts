@@ -1,9 +1,16 @@
 /** Canonical agent-facing setup contract. Keep downstream surfaces derived from this module. */
 export const stintCliVersion = "1.0.0-next.1" as const;
+export const setupInvocation = "npx @macworks/stint-cli setup --json" as const;
+export const setupSourceChoices = [
+  "Import a file",
+  "Paste or enter history",
+  "LinkedIn browser (experimental)",
+] as const;
+export const linkedinPrivacyNotice = "LinkedIn browser import is experimental, visible, sign-in-only, and never sends data to Stint servers." as const;
 
 export const agentPrompt = `Set up Stint from the project root with:
 
-npx @macworks/stint-cli setup --json
+${setupInvocation}
 
 Let the CLI inspect the project and report its inferred paths. Do not invent config or data locations.
 
@@ -22,11 +29,11 @@ export const agentGuideMarkdown = `# Stint setup guide
 
 ## Primary command
 
-\`npx @macworks/stint-cli setup --json\` discovers the project, presents a compact source menu, and returns resumable state codes. File imports are local-only and do not call Stint servers.
+\`${setupInvocation}\` discovers the project, presents a compact source menu, and returns resumable state codes. File imports are local-only and do not call Stint servers.
 
 ## Source choices
 
-- **Import a file:** LinkedIn “Save profile as PDF”, résumé PDF/DOCX, LinkedIn CSV/ZIP, JSON, or YAML. The CLI auto-detects supported formats.
+- **Import a file:** LinkedIn CSV/ZIP, JSON, or YAML. For a LinkedIn PDF, résumé, screenshot, or DOCX, have the agent extract a reviewed canonical JSON draft first, then pass that local draft to \`setup\`.
 - **Paste or enter history:** canonical JSON via stdin or \`add employer\` / \`add role\` prompts.
 - **LinkedIn browser (experimental):** use \`setup linkedin --url https://www.linkedin.com/in/... --experimental-browser\`. This opens a visible browser only after consent. The person signs in and handles MFA/CAPTCHA themselves.
 

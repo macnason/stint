@@ -2,9 +2,10 @@ import { resolve } from "node:path";
 
 import { CliError } from "../diagnostics.js";
 import { validateLinkedInProfileUrl } from "../browser/security.js";
-import { inspectProject } from "../project.js";
+import { inspectProject, publicProjectInspection } from "../project.js";
 import { readAnswers, type SetupAnswers } from "../setup/answers.js";
-import { parseOptions, rejectUnknownOptions, type ParsedOptions } from "../options.js";
+import { rejectUnknownOptions, type ParsedOptions } from "../options.js";
+import { setupSourceChoices } from "../agent-guide.js";
 import { importCommand } from "./import.js";
 import type { CliIo, CommandResult } from "./types.js";
 
@@ -18,12 +19,6 @@ const SETUP_VALUES = [
   "reference-month",
   "source",
   "url",
-] as const;
-
-const SOURCE_CHOICES = [
-  "Import a file",
-  "Paste or enter history",
-  "LinkedIn browser (experimental)",
 ] as const;
 
 export async function setupCommand(
@@ -46,7 +41,7 @@ export async function setupCommand(
       )).trim() || "1";
       if (choice === "1" && io.prompt) {
         const path = (await io.prompt("Path to the export or résumé: ")).trim();
-        if (path) return runFileImport(options, io, inspection, path, answers);
+        if (path) return runFileImport(options, inspection, path, answers);
       }
       if (choice === "3") {
         return browserState("needs_linkedin_consent", inspection, "The LinkedIn browser importer is experimental and requires explicit consent.");
@@ -56,8 +51,8 @@ export async function setupCommand(
       payload: {
         ok: true,
         state: "needs_source_choice",
-        sources: SOURCE_CHOICES,
-        project: publicInspection(inspection),
+        sources: setupSourceChoices,
+        project: publicProjectInspection(inspection),
       },
       human: "Choose one: Import a file, Paste or enter history, or LinkedIn browser (experimental).",
     };
@@ -79,17 +74,16 @@ export async function setupCommand(
         ok: true,
         state: "needs_review",
         remediation: "Provide a local file, canonical JSON, pasted history, or choose manual entry.",
-        project: publicInspection(inspection),
+        project: publicProjectInspection(inspection),
       },
       human: "This source needs a local draft or manual review before it can be applied.",
     };
   }
-  return runFileImport(options, io, inspection, source.path, answers);
+  return runFileImport(options, inspection, source.path, answers);
 }
 
 async function runFileImport(
   options: ParsedOptions,
-  _io: CliIo,
   inspection: ReturnType<typeof inspectProject>,
   sourcePath: string,
   answers?: SetupAnswers,
@@ -111,7 +105,6 @@ async function runFileImport(
   delete (importOptions.values as Record<string, string>).answers;
   delete (importOptions.values as Record<string, string>).source;
   delete (importOptions.values as Record<string, string>).url;
-  delete (importOptions.values as Record<string, string>).reference;
   const result = await importCommand(importOptions, false);
   const supportedIntegration = inspection.framework === "next" || inspection.framework === "vite";
   const state = apply
@@ -123,7 +116,7 @@ async function runFileImport(
     payload: {
       ...result.payload,
       state,
-      projectInspection: publicInspection(inspection),
+      projectInspection: publicProjectInspection(inspection),
       privacy: "File parsing stays on this device and does not call Stint servers.",
       ...(supportedIntegration
         ? {}
@@ -152,19 +145,6 @@ function resolveSource(options: ParsedOptions, answers?: SetupAnswers): { kind: 
   return undefined;
 }
 
-function publicInspection(inspection: ReturnType<typeof inspectProject>) {
-  return {
-    root: inspection.project.root,
-    framework: inspection.framework,
-    packageManager: inspection.packageManager,
-    existingStintDependency: inspection.existingStintDependency,
-    likelyConfigPath: inspection.likelyConfigPath,
-    likelyDataPath: inspection.likelyDataPath,
-    existingFiles: inspection.existingFiles,
-    ambiguities: inspection.ambiguities,
-  };
-}
-
 function browserState(
   state: string,
   inspection: ReturnType<typeof inspectProject>,
@@ -176,20 +156,9 @@ function browserState(
       ok: true,
       state,
       ...(remediation ? { remediation } : {}),
-      project: publicInspection(inspection),
+      project: publicProjectInspection(inspection),
       privacy: message,
     },
     human: message,
   };
-}
-
-export function setupOptionValues(): readonly string[] {
-  return SETUP_VALUES;
-}
-
-export function setupOptionsFromAnswers(answers: SetupAnswers): ParsedOptions {
-  return parseOptions([
-    ...(answers.source?.path ? [answers.source.path] : []),
-    ...(answers.project?.path ? ["--project", answers.project.path] : []),
-  ]);
 }

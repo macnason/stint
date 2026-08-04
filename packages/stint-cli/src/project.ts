@@ -30,6 +30,17 @@ export interface ProjectInspection {
   readonly ambiguities: readonly string[];
 }
 
+export interface PublicProjectInspection {
+  readonly root: string;
+  readonly framework: ProjectInspection["framework"];
+  readonly packageManager: ProjectInspection["packageManager"];
+  readonly existingStintDependency: boolean;
+  readonly likelyConfigPath: string;
+  readonly likelyDataPath: string;
+  readonly existingFiles: readonly string[];
+  readonly ambiguities: readonly string[];
+}
+
 export interface PathSnapshot {
   readonly path: string;
   readonly exists: boolean;
@@ -139,6 +150,19 @@ export function inspectProject(startPath = process.cwd()): ProjectInspection {
   };
 }
 
+export function publicProjectInspection(inspection: ProjectInspection): PublicProjectInspection {
+  return {
+    root: inspection.project.root,
+    framework: inspection.framework,
+    packageManager: inspection.packageManager,
+    existingStintDependency: inspection.existingStintDependency,
+    likelyConfigPath: inspection.likelyConfigPath,
+    likelyDataPath: inspection.likelyDataPath,
+    existingFiles: inspection.existingFiles,
+    ambiguities: inspection.ambiguities,
+  };
+}
+
 function detectPackageManager(root: string): ProjectInspection["packageManager"] {
   for (const [name, manager] of [
     ["pnpm-lock.yaml", "pnpm"],
@@ -157,9 +181,11 @@ function detectPackageManager(root: string): ProjectInspection["packageManager"]
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+  return isRecord(value) ? value : {};
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 export function prepareDestination(
