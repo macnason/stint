@@ -13,6 +13,7 @@ const BOOLEAN_OPTIONS = new Set([
   "experimental-browser",
   "help",
   "json",
+  "wizard",
 ]);
 
 export function parseOptions(args: readonly string[]): ParsedOptions {

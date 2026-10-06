@@ -1,6 +1,6 @@
 /** Canonical agent-facing setup contract. Keep downstream surfaces derived from this module. */
 export const stintCliVersion = "1.0.0-next.3" as const;
-export const setupInvocation = "npx @macworks/stint-cli setup --json" as const;
+export const setupInvocation = "npx @macworks/stint-cli setup --wizard --json" as const;
 export const setupSourceChoices = [
   "Import a file",
   "Paste or enter history",
@@ -8,21 +8,19 @@ export const setupSourceChoices = [
 ] as const;
 export const linkedinPrivacyNotice = "LinkedIn browser import is experimental, visible, sign-in-only, and never sends data to Stint servers." as const;
 
-export const agentPrompt = `Set up Stint from the project root with:
+export const agentPrompt = `Set up Stint in this project for me. Guide me through one simple flow: share my history, review it, then see my timeline. Handle the terminal, installation, project checks and integration yourself. Don't ask me for file paths, commands, JSON or browser libraries.
+
+Read the agent guide with npx @macworks/stint-cli guide --json. If I already attached a file or shared my LinkedIn URL, use it. Otherwise start the bundled file-picker wizard from the project root in a persistent background process:
 
 ${setupInvocation}
 
-Let the CLI inspect the project and report its inferred paths. Do not invent config or data locations.
+Open or share its setup link so I can choose or drop a file from my own computer. For a remote project, use the host's approved private preview forwarding and preserve the URL fragment; don't hand me an unreachable localhost link or expose setup publicly. If a reachable wizard isn't available, ask me to attach the file directly in this chat. Never ask me to find its path.
 
-Read \`stint guide --json\` and inspect your available browser tools before asking the person to choose a technical workflow. Prefer the host application's shared browser when available; otherwise reuse an available agent-browser, Puppeteer, or Playwright session. A browser executable or npm package alone does not prove that a working or signed-in session exists.
+The wizard checks the project, reads the file locally, lets me correct companies, roles and dates, and saves only after I choose “Use this history”. Poll its authenticated state to know when I'm done. Don't run a separate doctor step or make me repeat wizard decisions. If I attached a file in chat, handle the same preview and review in chat instead of asking me to upload it again.
 
-If the person already supplied a file, use it. Otherwise ask one simple question: “Share your LinkedIn URL, or a PDF/screenshot you already have.” A supplied URL authorizes inspecting that profile; do not ask them to repeat it or repeat permissions already granted. Use \`stint setup https://www.linkedin.com/in/example --json\` to start the URL handoff. Report observed capabilities using the answers format in the guide; do not pretend the CLI can discover your MCP tools.
+For a LinkedIn URL, inspect the browser tools you already have and use an accessible session. If sign-in is needed, the person signs in there; never enter passwords, MFA, or CAPTCHA. If access fails, offer the file picker or chat attachment without a browser installation detour. Explain any agent-provider data boundary once; local file extraction sends nothing to Stint servers.
 
-Use the existing browser to inspect the rendered Experience section. Headless browsing is useful when the profile is already accessible; if sign-in is required, hand the interactive browser to the person. If blocked or no human sign-in is possible, switch to the bundled local PDF/OCR path without a browser installation detour. Never promise that a LinkedIn URL alone grants access.
-
-For LinkedIn browser import, tell the person: “We don't send your profile or project data to Stint servers; setup runs on your device.” Explain that the visible browser connects directly to LinkedIn, the person signs in there, and Stint never receives credentials. Never enter passwords, MFA, or CAPTCHA for them.
-
-Use one local answers payload for non-TTY decisions: setup --answers answers.json. Review the plan before rerunning with --apply. Use complete_with_handoff when the project is unsupported instead of guessing paths.
+After my history is saved, connect the generated data to a Stint component using the project's existing conventions, run the appropriate checks, and show me a working page. Don't call setup complete just because the data file exists. Keep technical details behind the scenes and ask only for missing design decisions.
 
 Guide version: ${stintCliVersion}`;
 
@@ -30,13 +28,23 @@ export const agentGuideMarkdown = `# Stint setup guide
 
 ## Primary command
 
-\`${setupInvocation}\` discovers the project, presents a compact source menu, and returns setup state codes. File imports are local-only and do not call Stint servers.
+\`${setupInvocation}\` starts the bundled browser wizard. The person chooses or drops a file, reviews editable history, and saves. Project discovery and installation happen inside setup; no separate doctor step is required. File extraction runs on the project host and does not call Stint servers.
+
+## One designer-facing wizard
+
+Start \`setup --wizard --json\` in a persistent background process from the target project. It returns \`waiting_for_upload\`, a loopback URL with a secret fragment, and a port. It stays alive for up to one hour. The static UI and server ship inside the CLI with no extra UI dependencies. The browser file picker reads from the person's computer, including when the project runs remotely; uploads go only to that project host. Temporary drafts are private and cleaned when the session closes. Stop the process when finished.
+
+Use the environment's approved private preview forwarding for remote projects and preserve the fragment when changing the origin. Never expose setup publicly. If that isn't available, use a chat attachment. Do not ask the person to install forwarding tools, type paths, or copy technical answers.
+
+The fragment is a session token. Use it as \`Authorization: Bearer TOKEN\` to poll \`GET /api/state\` at a reasonable interval while waiting for the person's review. Don't log the token or add it to project files. On \`stage: "complete"\`, read the result's inferred paths and finish component integration. The wizard saves canonical JSON and a typed data module; it does not decide where a component belongs in the person's page. Reuse existing layout and style conventions, then build and provide the working preview. Report unsupported projects honestly and complete the integration handoff as the agent.
+
+For chat attachments, run \`setup ATTACHMENT --json\`, show one plain-language summary, correct uncertain entries, then apply with existing authorization. Do not show the person a command checklist. Pasted history is also acceptable: the agent creates and validates the draft behind the scenes.
 
 ## Recommend one route
 
-Run \`stint doctor --json\` for project and local capability discovery, then inspect the agent's own tool catalog. Local discovery is read-only: an installed Chromium or agent-browser binary does not establish a working session, login, or a browser visible to the person. Prefer the host application's shared browser and respect its tool precedence; reuse agent-browser, Puppeteer or Playwright if already usable. Do not install or launch a second browser just to duplicate a working tool.
+Use \`stint setup --json\` for project and local capability discovery only when working with an existing chat attachment or LinkedIn URL. Inspect the agent's own tool catalog. Local discovery is read-only: an installed Chromium or agent-browser binary does not establish a working session, login, or a browser visible to the person. Prefer the host application's shared browser and respect its tool precedence; reuse agent-browser, Puppeteer or Playwright if already usable. Do not install or launch a second browser just to duplicate a working tool.
 
-If a file is already supplied, use \`stint extract FILE --output draft.json\` and review it. Otherwise ask only for a LinkedIn URL or an existing PDF/screenshot. Recommend one route and explain the fallback briefly; do not make the person choose an automation library, fill in technical answers JSON, or supply credentials.
+If a file is already supplied, use it without asking for another upload. Otherwise open the bundled wizard or ask for a chat attachment or LinkedIn URL. Resolve attachment paths yourself; never ask the person to navigate the filesystem. Recommend one route and explain the fallback briefly; do not make the person choose an automation library, fill in technical answers JSON, or supply credentials.
 
 - **Usable browser:** accept \`stint setup https://www.linkedin.com/in/example --json\`. The coordinating agent reports observed capabilities and uses its existing browser to inspect the profile. Headless is fine if the rendered Experience section is accessible. A URL is a starting point, not a guarantee of profile access.
 - **Sign-in needed:** if the browser is interactive, let the person sign in once. Never enter passwords, MFA, or CAPTCHA. On a remote host, a headed browser is useful only when the person can actually see and control it. Do not expose remote-debugging ports, copy cookies, or read browser profiles to manufacture access.
@@ -93,7 +101,7 @@ Use the current tool documentation for the installed version: [agent-browser com
 
 ## Advanced compatibility
 
-Use \`npx @macworks/stint-cli help --advanced\` for legacy path, conflict, format, reference-month, and field flags. The quick surface is \`guide\`, \`extract\`, \`setup\`, \`import\`, \`validate\`, and \`doctor\`.
+Use \`npx @macworks/stint-cli help --advanced\` for legacy path, conflict, format, reference-month, and field flags. The designer-facing entry is the copied prompt and its setup wizard. \`doctor\`, \`extract\`, \`import\`, and \`validate\` remain optional agent/developer tools, not onboarding steps.
 
 Guide version: ${stintCliVersion}
 `;

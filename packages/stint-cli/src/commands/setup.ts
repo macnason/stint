@@ -24,6 +24,7 @@ const SETUP_VALUES = [
   "reference-month",
   "source",
   "url",
+  "port",
 ] as const;
 
 const LINKEDIN_PRIVACY_MESSAGE = "We don't send your profile or project data to Stint servers; setup runs on your device. The visible browser connects directly to LinkedIn, and you sign in there yourself. Stint never enters passwords, MFA, or CAPTCHA.";
@@ -32,7 +33,21 @@ export async function setupCommand(
   options: ParsedOptions,
   io: CliIo,
 ): Promise<CommandResult> {
-  rejectUnknownOptions(options, SETUP_VALUES, ["apply", "dry-run", "experimental-browser", "json"]);
+  rejectUnknownOptions(options, SETUP_VALUES, ["apply", "dry-run", "experimental-browser", "json", "wizard"]);
+  if (options.flags.has("wizard")) {
+    if (options.positionals.length || Object.keys(options.values).some(key => !["project", "port"].includes(key)) || [...options.flags].some(flag => !["wizard", "json"].includes(flag))) {
+      throw new CliError("E_OPTION", "The upload wizard accepts only --project, --port and --json. Choose and review your file in the browser.");
+    }
+    const port = Number(options.values.port ?? 0);
+    if (!Number.isInteger(port) || port < 0 || port > 65535) throw new CliError("E_OPTION", "Choose a valid port.");
+    const { startWizard } = await import("../wizard/server.js");
+    const wizard = await startWizard(options.values.project ?? ".", port);
+    const stop = () => { void wizard.close(); };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+    return { payload: { ok: true, state: "waiting_for_upload", url: wizard.url, port: wizard.port, expiresInMinutes: 60 }, human: `Open this link to choose your file and review your history:\n${wizard.url}\nKeep this process running while you finish setup.` };
+  }
+  if (options.values.port) throw new CliError("E_OPTION", "--port is only used with --wizard.");
   if (options.positionals.length > 1) {
     throw new CliError("E_COMMAND", "setup accepts at most one source path.", { exitCode: 2 });
   }

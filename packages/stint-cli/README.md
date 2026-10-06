@@ -4,17 +4,32 @@ Authoring and import tooling for [Stint](https://github.com/macnason/stint)
 career timelines. It writes canonical JSON plus a generated, typed TypeScript
 literal — atomically, so a failed run leaves no half-written config.
 
+## Start with your agent
+
+Copy the setup prompt from the Stint docs into your coding agent. The agent handles installation, project checks, and connecting the timeline to your page.
+
+1. **Share your history.** Choose or drop a LinkedIn PDF/screenshot in the setup window, attach it in the chat, or share your LinkedIn URL.
+2. **Review it.** Correct companies, roles, and dates, then choose **Use this history**.
+3. **See your timeline.** Your agent finishes the page and gives you a working preview.
+
+No file paths or terminal commands are needed from the designer. The file picker reads from the designer's computer even when the project runs on a remote host. Files are processed on that host, not sent to Stint servers.
+
+### For agents and developers
+
 ```bash
-npx @macworks/stint-cli help
+npx @macworks/stint-cli setup --wizard --json
 ```
 
-Node 22 or newer is required.
+Keep the process running in the background. Open the returned link; for remote projects use approved private preview forwarding, preserving the URL fragment. If forwarding is unavailable, use a chat attachment instead. The session expires after one hour. Stop it when finished. The wizard is bundled in the CLI with no additional UI dependencies. Node 22 or newer is required.
 
-## Commands
+The wizard saves history and installs the runtime when needed. The agent then places the component in the page and verifies the result. `doctor` is an optional diagnostic command, not an onboarding step.
+
+## Developer commands
 
 ```text
 stint guide [--json]
 stint extract INPUT [--output draft.json] [--json]
+stint setup --wizard [--project DIR] [--port PORT] [--json]
 stint setup [SOURCE] [--answers FILE|-] [--apply] [--json]
 stint import INPUT [--json]
 stint validate [--json]
@@ -29,9 +44,9 @@ path, input format, current reference month, and abort-on-conflict policy. Use
 `setup` returns a reviewable plan before writing. Non-TTY choices use one local
 `--answers FILE|-` JSON payload; no command prompts in non-TTY mode.
 
-## Importing
+## Scripted imports
 
-Save your LinkedIn profile as PDF, then run:
+For scripted workflows outside the designer wizard:
 
 ```bash
 npx @macworks/stint-cli extract ~/Downloads/Profile.pdf --output draft.json
@@ -98,7 +113,7 @@ entries, and future-dated entries.
 ## Agent-assisted onboarding
 
 Give your agent a LinkedIn URL or a file you already have. The agent reads
-`stint guide --json`, inspects the project with `stint doctor --json`, and
+`stint guide --json`, lets setup inspect the project automatically, and
 recommends one route using the browser tools it already has.
 
 ```bash

@@ -29,3 +29,15 @@ gh pr edit PR_NUMBER --attach /tmp/stint-onboarding.mp4
 ```
 
 GitHub renders the attachment as a native video player. The interactive application itself runs in the walkthrough server; the embedded video is a recording of those interactions.
+
+## Designer flow (current)
+
+The original seven-command harness above is retained as a developer diagnostic demo. For the designer experience, run `node scripts/onboarding-demo/wizard.mjs` after building. It installs the PR tarballs in an isolated project and launches the **shipped** upload wizard on port 4188. The output includes the temporary project path and a private setup link. Keep that link out of public logs and PR descriptions.
+
+Record it with `DEMO_URL` set to the fresh wizard link and `DEMO_PROJECT` set to the printed project path:
+
+```sh
+node scripts/onboarding-demo/record-wizard.mjs /tmp/stint-designer-setup.mp4
+```
+
+The recorder opens the native file chooser, uploads the synthetic screenshot, edits a company, confirms the history, and saves. It then performs the React integration assigned to the agent by the copied prompt, builds the consumer, and shows the working timeline. It also checks the upload screen at a mobile viewport. The recording displays only the browser viewport, not the private session URL.

@@ -5,6 +5,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const out = resolve("packages/stint-cli/dist/documents");
 mkdirSync(out, { recursive: true });
+mkdirSync(resolve("packages/stint-cli/dist/wizard"), { recursive: true });
+copyFileSync("packages/stint-cli/src/wizard/index.html", "packages/stint-cli/dist/wizard/index.html");
 const core = require.resolve(
   "tesseract.js-core/tesseract-core-simd-lstm.wasm.js"
 );

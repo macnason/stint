@@ -27,9 +27,11 @@ const COMMANDS: readonly CommandDescription[] = [
   },
   {
     key: "setup",
-    usage: "stint setup [SOURCE] [--answers FILE|-] [--apply] [--json]",
-    description: "Discover the project, choose a source, preview, and apply a Stint setup.",
+    usage: "stint setup --wizard [--project DIR] [--port PORT] [--json]",
+    description: "Open the guided file picker: upload, review your history, and save.",
     options: [
+      "--wizard                  Start the bundled browser upload and review flow",
+      "--port PORT               Optional loopback port for private preview forwarding",
       "SOURCE                    Local file, LinkedIn HTTPS URL, or linkedin for the experimental browser",
       "--answers FILE|-          Versioned non-interactive choices",
       "--apply                   Apply after the draft is reviewed",
