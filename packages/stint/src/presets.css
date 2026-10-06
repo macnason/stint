@@ -27,4 +27,14 @@
     --stint-focus: #f5f5f5;
     --stint-label-active: #ffffff;
   }
+
+  [data-stint-theme="dark"] .stint__logoArt[data-has-dark] > .stint__logoImage:not(.stint__logoImage--dark),
+  .stint[data-stint-theme="dark"] .stint__logoArt[data-has-dark] > .stint__logoImage:not(.stint__logoImage--dark) {
+    display: none;
+  }
+
+  [data-stint-theme="dark"] .stint__logoArt[data-has-dark] > .stint__logoImage--dark,
+  .stint[data-stint-theme="dark"] .stint__logoArt[data-has-dark] > .stint__logoImage--dark {
+    display: block;
+  }
 }

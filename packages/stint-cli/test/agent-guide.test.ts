@@ -19,5 +19,9 @@ describe("canonical agent guide", () => {
     expect(agentPrompt).toContain("never enter passwords, MFA, or CAPTCHA");
     expect(agentPrompt).toContain("Don't run a separate doctor step");
     expect(agentPrompt).toContain("Don't call setup complete just because the data file exists");
+    expect(agentPrompt).toContain("npx @macworks/stint-cli logos");
+    expect(agentPrompt).toContain("Never fetch, crop, resize or restyle logos by hand");
+    expect(agentGuideMarkdown).toContain("## Company logos");
+    expect(agentGuideMarkdown).toContain("logos={stintLogos}");
   });
 });

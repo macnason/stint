@@ -10,6 +10,8 @@ export {
   type StintProps,
   type StintSlots,
   type StintLogoContext,
+  type StintLogo,
+  type StintLogos,
   type StintReadoutContext,
   type StintTickContext,
   type StintClassNameSlot,

@@ -26,6 +26,24 @@ const COMMANDS: readonly CommandDescription[] = [
     notes: ["PDF text extraction and English OCR are bundled and run offline. Existing output files are never replaced."],
   },
   {
+    key: "logos",
+    usage: "stint logos --input logos.json [--screenshot FILE] [--surface white|transparent] [--apply] [--json]",
+    description: "Find, rank and optically normalise company logos for the saved history.",
+    options: [
+      "--input FILE              {\"version\":1,\"companies\":[{\"company\",\"domain\",\"github\"?,\"file\"?}]}",
+      "--screenshot FILE         LinkedIn Experience screenshot to crop logos from as a fallback",
+      "--surface white|transparent  Bake marks onto a white tile (default) or keep transparency",
+      "--offline                 Use only local files and the screenshot",
+      "--apply                   Write public/stint/logos and stint.logos.ts",
+      "--conflict abort|overwrite  Replace earlier generated logos",
+      "--json                    Emit the review, sheet path and writes",
+    ],
+    notes: [
+      "Fetches the company's own site icons, GitHub avatar, Simple Icons and a favicon service over HTTPS. Company domains are sent to those services; nothing is sent to Stint.",
+      "Images are decoded and normalised offline in a bundled engine. Review the contact sheet before applying.",
+    ],
+  },
+  {
     key: "setup",
     usage: "stint setup --wizard [--project DIR] [--port PORT] [--json]",
     description: "Open the guided file picker: upload, review your history, and save.",

@@ -45,6 +45,18 @@ const ocr = await build({
     },
   ],
 });
+const logos = await build({
+  ...settings,
+  entryPoints: ["packages/stint-cli/src/logos/engine.ts"],
+  outfile: resolve("packages/stint-cli/dist/logos/engine.cjs"),
+  banner: {
+    js: "const __bundleUrl = require('node:url').pathToFileURL(__filename).href; globalThis.fetch = async () => { throw new Error('The logo engine is offline'); };",
+  },
+});
+copyFileSync(
+  require.resolve("@resvg/resvg-wasm/index_bg.wasm"),
+  resolve("packages/stint-cli/dist/logos/resvg.wasm")
+);
 copyFileSync(
   require.resolve("@hyzyla/pdfium/pdfium.wasm"),
   join(out, "pdfium.wasm")
@@ -61,6 +73,7 @@ const licenses = new Map();
 for (const file of [
   ...Object.keys(engine.metafile.inputs),
   ...Object.keys(ocr.metafile.inputs),
+  ...Object.keys(logos.metafile.inputs),
   require.resolve("@tesseract.js-data/eng"),
 ]) {
   if (!file.includes("node_modules/")) continue;

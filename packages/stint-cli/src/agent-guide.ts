@@ -18,7 +18,9 @@ Do not start a web server or open the upload wizard by default. Only offer the o
 
 For a LinkedIn URL, inspect the browser tools you already have and use an accessible session. If sign-in is needed, the person signs in there; never enter passwords, MFA, or CAPTCHA. If access fails, ask for a chat attachment or pasted history without a browser installation detour. Explain any agent-provider data boundary once; local file extraction sends nothing to Stint servers.
 
-After my history is saved, connect the generated data to a Stint component using the project's existing conventions, run the appropriate checks, and show me a working page. Don't call setup complete just because the data file exists. Keep technical details behind the scenes and ask only for missing design decisions.
+After my history is saved, add company logos with npx @macworks/stint-cli logos: resolve each company's own website domain yourself, pass any LinkedIn screenshot I shared, look at the review sheet, and apply. Never fetch, crop, resize or restyle logos by hand. Ask me only about logos it flags, offering to keep the initial or attach a logo file.
+
+Then connect the generated data and logos to a Stint component using the project's existing conventions, run the appropriate checks, and show me a working page. Don't call setup complete just because the data file exists. Keep technical details behind the scenes and ask only for missing design decisions.
 
 Guide version: ${stintCliVersion}`;
 
@@ -86,6 +88,29 @@ Run \`stint setup draft.json --json\`; use inferred project paths and show one c
 LinkedIn CSV/ZIP, JSON and YAML remain supported. DOCX and free-form résumés need a reviewed canonical draft; do not claim generic résumé parsing.
 
 Privacy: we don't send your profile or project data to Stint servers; setup runs on your device. Browser tools connect directly to LinkedIn and follow their own provider boundary. \`consent.agentProviderBoundary: false\` selects the local file route. Bundled PDF/OCR extraction stays local.
+
+## Company logos
+
+Run logos after the history is applied, so experience IDs exist. Never hand-pick favicons or style logo images in components; \`stint logos\` finds, ranks and optically normalises them so every tile reads at the same visual weight.
+
+1. Write a small local input file. You resolve identity; the CLI does pixels:
+
+\`\`\`json
+{ "version": 1, "companies": [
+  { "company": "Stripe", "domain": "stripe.com", "github": "stripe" },
+  { "company": "Acme", "file": "/path/to/attached-logo.png" }
+] }
+\`\`\`
+
+\`domain\` is the company's own site (not LinkedIn). For companies acquired or renamed, use the domain they used at the time; the CLI detects redirects and parked domains and will not borrow another company's icon. \`github\` is optional and only when you are sure of the organisation. \`file\` is a logo the person attached; it always wins.
+
+2. Run \`npx @macworks/stint-cli logos --input logos.json --screenshot SHOT.png --json\`. Pass \`--screenshot\` with the LinkedIn Experience screenshot when the person shared one: logos are cropped from it as a fallback, LinkedIn's grey placeholders are ignored, and crops are skipped unless every employer has exactly one slot. Nothing is written yet.
+
+3. Open the returned \`sheet\` image and look at it: rails at 30px and tiles at 48px, on light and dark. Check each logo is the right company. For entries with \`needsReview\`, tell the person in one line what was found (e.g. "Programa: only a 56px icon; keep it, or attach a sharper logo?"). Accept attached files by adding \`file\` and rerunning. Don't ask about high-confidence logos.
+
+4. Apply with \`--apply --conflict overwrite --json\`. It writes \`public/stint/logos/*.png\` and a typed \`stint.logos.ts\` beside the data module. Render \`<Stint data={stintConfig} logos={stintLogos} />\`; do not use the \`logo\` slot or custom \`<img>\` styling for these.
+
+Defaults: artwork is baked onto its own square tile (brand tiles stay full-bleed, marks sit on white), so it reads the same on any theme. Use \`--surface transparent\` only if the design needs transparent marks; dark variants then swap in under \`data-stint-theme="dark"\`. Logo discovery sends company domains to those sites, GitHub, the Simple Icons CDN and a favicon service; nothing is sent to Stint. \`--offline\` uses only attached files and the screenshot.
 
 ## Non-TTY answers
 

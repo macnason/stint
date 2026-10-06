@@ -13,6 +13,7 @@ const BOOLEAN_OPTIONS = new Set([
   "experimental-browser",
   "help",
   "json",
+  "offline",
   "wizard",
 ]);
 

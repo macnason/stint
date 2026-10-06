@@ -2,6 +2,7 @@
 
 import { guideCommand } from "./commands/guide.js";
 import { extractCommand } from "./commands/extract.js";
+import { logosCommand } from "./commands/logos.js";
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -78,6 +79,8 @@ async function dispatch(
       return setupCommand(options, io);
     case "doctor":
       return doctorCommand(options);
+    case "logos":
+      return logosCommand(options);
     case "init":
       return initCommand(options, io.isTTY);
     case "add":
