@@ -4,18 +4,88 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Set up Stint</title>
 <style>
-:root{font-family:Arial,sans-serif;color:#283129;background:#f5f5ef;font-synthesis:none}*{box-sizing:border-box}body{margin:0}header{max-width:1060px;margin:auto;padding:30px 32px;display:flex;justify-content:space-between;align-items:center}.brand{font-size:27px;font-weight:700;letter-spacing:-1.4px}.brand span{color:#6d875c}.project{font-size:13px;color:#667160;max-width:60%;overflow-wrap:anywhere}main{max-width:760px;margin:48px auto;padding:0 28px 48px}.progress{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#6b775f}h1{font-weight:500;font-size:clamp(32px,5vw,48px);line-height:1.1;letter-spacing:-1.8px;margin:20px 0}p{line-height:1.6;color:#667160}h2{font-size:18px;font-weight:500;margin:0 0 24px}button,input{font:inherit}button{cursor:pointer;border:0;border-radius:28px;padding:15px 24px;background:#35533b;color:white;transition:background .15s,transform .15s}button:hover{background:#46664a}button:active{transform:scale(.98)}button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #80a76b;outline-offset:4px}button:disabled{opacity:.55;cursor:wait}.secondary{background:transparent;color:#506049;padding:12px 0;text-decoration:underline;text-underline-offset:4px}.secondary:hover{background:transparent}.drop{margin-top:36px;padding:52px 24px;text-align:center;background:#fff;border:1px dashed #b7c4ab;border-radius:20px;transition:background .2s,border-color .2s}.drop.over{background:#eaf0e3;border-color:#426a35}.drop svg{width:42px;height:42px;margin-bottom:16px;stroke:#6a845a;fill:none;stroke-width:1.4}.drop p{font-size:14px;margin-bottom:0}.privacy{font-size:12px;margin-top:20px}.step{animation:enter .3s cubic-bezier(.16,1,.3,1)}[hidden]{display:none!important}.status{min-height:24px;font-size:14px}.error{color:#963c27;background:#fff2eb;padding:14px 18px;border-radius:10px}.entry{padding:26px;margin:22px 0;background:#fff;border:1px solid #e0e3d8;border-radius:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:block;font-size:12px;color:#68755d;margin-bottom:16px}.field input{display:block;width:100%;margin-top:8px;border:1px solid #dce0d4;border-radius:8px;padding:11px 12px;color:#283129;background:#fff;min-height:44px}.role{border-top:1px solid #edf0e6;padding-top:18px;margin-top:8px}.row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.check{font-size:14px;display:flex;align-items:center;gap:9px;margin:6px 0 20px}.check input{width:18px;height:18px;accent-color:#35533b}.notice{padding:18px 22px;background:#eaf0e2;border-radius:12px;font-size:14px;line-height:1.6}.notice ul{margin:8px 0 0;padding-left:20px}.actions{margin-top:30px;display:flex;justify-content:space-between;align-items:center;gap:20px}.success{width:64px;height:64px;background:#e1ecd8;border-radius:50%;display:grid;place-items:center;font-size:28px;color:#466139;margin-bottom:28px}.fine{font-size:13px}@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(max-width:560px){main{margin-top:24px}.grid{grid-template-columns:1fr;gap:0}.entry{padding:20px}header{padding:24px 28px}.drop{padding:36px 18px}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+/* Mirrors the Stint site's light surface, StintMark, PromptButton and card tokens.
+   Use a local sans fallback so the CLI needs no font downloads or hosted assets. */
+:root {
+  font-family: "ABC Diatype", Arial, ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  --bg: oklch(.997 0 0);
+  --raised: #fff;
+  --text: oklch(.145 0 0);
+  --muted: oklch(.5243 0 0);
+  --border: oklch(.145 0 0 / .1);
+  --hairline: oklch(.145 0 0 / .055);
+  --sunken: oklch(.962 .004 0);
+  --shadow-card: inset 0 1.5px 0 #fff, 0 0 0 .5px oklch(.16 .005 262 / .05), 0 1px 2px oklch(.16 .005 262 / .04), 0 8px 32px -1px oklch(.16 .005 262 / .02);
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { max-width: 760px; margin: auto; padding: 48px 28px 0; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 500; letter-spacing: -.015em; }
+.mark { width: 28px; height: 28px; border-radius: 8.4px; display: grid; place-items: center; color: #fafafa; background: linear-gradient(#2c2c31, #0a0a0c); box-shadow: inset 0 1px 0 #ffffff38, inset 0 1.5px 2px #ffffff1a, inset 0 -1px 0 #0008, 0 0 0 .5px #0006, 0 1px 2px #0004, 0 6px 16px -4px #0004; }
+.mark svg { width: 20px; height: 20px; }
+.project { font-size: 13px; color: var(--muted); max-width: 60%; overflow-wrap: anywhere; }
+main { max-width: 760px; margin: 64px auto 0; padding: 0 28px 64px; }
+.progress { font-size: 13px; color: var(--muted); }
+h1 { font-weight: 500; font-size: clamp(32px, 5vw, 48px); line-height: 1.25; letter-spacing: -.025em; margin: 20px 0 18px; text-wrap: balance; }
+p { font-size: 16px; line-height: 1.625; letter-spacing: -.01em; color: var(--muted); }
+h2 { font-size: 20px; font-weight: 500; letter-spacing: -.02em; margin: 0 0 24px; }
+button, input { font: inherit; }
+button { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: 0; border-radius: 999px; min-height: 44px; padding: 0 20px; color: var(--bg); font-size: 13px; font-weight: 500; background: linear-gradient(#292929, #0a0a0a); box-shadow: inset 0 1px 0 #ffffff8c, inset 0 -1px 0 #0000001f, 0 1px 2px #00000038, 0 4px 10px -2px #00000038, 0 12px 28px -6px #00000042; transition: transform .2s cubic-bezier(.23,1,.32,1), opacity .2s; }
+@media (hover: hover) { button:hover { transform: scale(1.03); } }
+button:active { transform: scale(.985); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+button:disabled { opacity: .5; cursor: wait; transform: none; }
+.secondary { background: transparent; color: var(--muted); padding: 8px 0; box-shadow: none; text-decoration: underline; text-underline-offset: 4px; }
+.secondary:hover { color: var(--text); transform: none; }
+.drop { position: relative; margin-top: 36px; padding: 38px 24px 32px; text-align: center; background: var(--raised); border: 1px solid transparent; border-radius: 32px; box-shadow: var(--shadow-card); transition: background .2s, border-color .2s; overflow: hidden; }
+.drop.over { background: var(--sunken); border-color: var(--text); }
+.ruler { display: block; position: relative; width: 216px; height: 42px; margin: 0 auto 30px; background: repeating-linear-gradient(90deg, transparent 0 7px, #bbb 7px 8px, transparent 8px 16px) center / 100% 16px no-repeat; mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); }
+.ruler::before { content: ''; position: absolute; top: 6px; bottom: 6px; width: 1px; background: var(--text); left: 50%; }
+.drop p { font-size: 13px; margin: 22px 0 0; }
+.privacy { font-size: 13px; margin-top: 24px; }
+.step { animation: enter .3s cubic-bezier(.16,1,.3,1); }
+[hidden] { display: none !important; }
+.status { min-height: 24px; font-size: 14px; }
+.error { color: #963c27; background: #fff2eb; padding: 14px 18px; border-radius: 12px; }
+.entry { padding: 28px; margin: 24px 0; background: var(--raised); border: 1px solid var(--hairline); border-radius: 24px; box-shadow: var(--shadow-card); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.field { display: block; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.field input { display: block; width: 100%; margin-top: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; color: var(--text); background: var(--raised); min-height: 44px; font-size: 16px; letter-spacing: -.01em; }
+.role { border-top: 1px solid var(--hairline); padding-top: 24px; margin-top: 8px; }
+.row { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.check { font-size: 14px; line-height: 1.5; display: flex; align-items: flex-start; gap: 10px; margin: 6px 0 20px; }
+.check input { width: 18px; height: 18px; flex: none; margin: 1px 0 0; accent-color: var(--text); }
+.notice { padding: 18px 22px; background: #f7f7f7; border: 1px solid var(--hairline); border-radius: 16px; font-size: 14px; line-height: 1.6; }
+.notice ul { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+.actions { margin-top: 32px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.success { width: 48px; height: 48px; background: var(--raised); border-radius: 15px; box-shadow: var(--shadow-card); display: grid; place-items: center; font-size: 24px; color: var(--text); margin-bottom: 28px; }
+.fine { font-size: 13px; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 560px) {
+  header { padding: 28px 24px 0; }
+  main { margin-top: 40px; padding: 0 24px 40px; }
+  .grid { grid-template-columns: 1fr; gap: 0; }
+  .entry { padding: 20px; }
+  .drop { padding: 28px 18px; border-radius: 24px; }
+  .actions { gap: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<header><div class="brand">stint<span>.</span></div><div class="project" id="project"></div></header>
+<header><div class="brand"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.2 6.45v3.7m4.8-3.7v3.7m4.8-3.7v3.7M7.2 13.85v3.7m4.8-3.7v3.7m4.8-3.7v3.7M7.2 10.15l4.8 3.7m0-3.7 4.8 3.7M7.2 6.45 12 1.65l4.8 4.8M7.2 17.55l4.8 4.8 4.8-4.8"/></svg></span><span>Stint</span></div><div class="project" id="project"></div></header>
 <main>
 <div id="upload" class="step">
 <div class="progress">1 of 2 · Your history</div>
-<h1>Bring your experience.</h1>
-<p>Choose a LinkedIn PDF or a screenshot of your Experience section.<br>We’ll turn it into a timeline for you to review.</p>
+<h1>Add your history.</h1>
+<p>Choose a LinkedIn PDF or a screenshot of your Experience section. We’ll turn it into a timeline for you to review.</p>
 <div class="drop" id="drop">
-<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M11 4h13l7 7v25H9V4h2M24 4v8h7M20 28V17m-5 5 5-5 5 5"/></svg><br>
+<span class="ruler" aria-hidden="true"></span>
 <button id="choose" type="button">Choose a file</button>
 <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.csv,.zip,.json,.yaml,.yml" hidden>
 <p>or drop it here · PDF, PNG or JPG · up to 8 MB</p>

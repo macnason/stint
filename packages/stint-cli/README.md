@@ -8,11 +8,11 @@ literal — atomically, so a failed run leaves no half-written config.
 
 Copy the setup prompt from the Stint docs into your coding agent. The agent handles installation, project checks, and connecting the timeline to your page.
 
-1. **Share your history.** Choose or drop a LinkedIn PDF/screenshot in the setup window, attach it in the chat, or share your LinkedIn URL.
-2. **Review it.** Correct companies, roles, and dates, then choose **Use this history**.
+1. **Share your history in chat.** Attach a LinkedIn PDF/screenshot, paste your history, or share your LinkedIn URL.
+2. **Review it in chat.** Your agent summarizes the companies, roles and dates and asks about anything unclear.
 3. **See your timeline.** Your agent finishes the page and gives you a working preview.
 
-No file paths or terminal commands are needed from the designer. The file picker reads from the designer's computer even when the project runs on a remote host. Files are processed on that host, not sent to Stint servers.
+No separate setup app, file paths or terminal commands are needed from the designer. An optional file picker is available when chat attachments are unavailable or preferred. It reads from the designer's computer even when the project runs on a remote host. Files are processed on that host, not sent to Stint servers.
 
 ### For agents and developers
 

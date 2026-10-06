@@ -9,7 +9,9 @@ describe("canonical agent guide", () => {
     expect(bundle.prompt).toBe(agentPrompt);
     expect(bundle.markdown).toBe(agentGuideMarkdown);
     expect(bundle.llms).toBe(llmsText);
-    expect(agentPrompt).toContain("npx @macworks/stint-cli setup --wizard --json");
+    expect(agentPrompt).toContain("npx @macworks/stint-cli setup --json");
+    expect(agentPrompt).toContain("Keep setup in this chat by default");
+    expect(agentPrompt).toContain("Do not start a web server or open the upload wizard by default");
     expect(agentGuideMarkdown).toContain("complete_with_handoff");
     expect(agentGuideMarkdown).toContain("visible browser");
     expect(agentGuideMarkdown).toContain("we don't send your profile or project data to Stint servers");
