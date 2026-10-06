@@ -13,11 +13,24 @@ interface CommandDescription {
 
 const COMMANDS: readonly CommandDescription[] = [
   {
+    key: "guide",
+    usage: "stint guide [--json]",
+    description: "Read the canonical agent onboarding guide and browser handoff contract.",
+    options: ["--json                    Emit the guide, prompt, and capture contract"],
+  },
+  {
+    key: "extract",
+    usage: "stint extract INPUT [--output draft.json] [--json]",
+    description: "Read a local LinkedIn PDF or PNG/JPEG screenshot into a reviewable draft, without a project.",
+    options: ["--output FILE             Save a new editable canonical JSON draft", "--json                    Emit the draft and review warnings"],
+    notes: ["PDF text extraction and English OCR are bundled and run offline. Existing output files are never replaced."],
+  },
+  {
     key: "setup",
     usage: "stint setup [SOURCE] [--answers FILE|-] [--apply] [--json]",
     description: "Discover the project, choose a source, preview, and apply a Stint setup.",
     options: [
-      "SOURCE                    Local export/résumé path, or linkedin for the experimental browser path",
+      "SOURCE                    Local file, LinkedIn HTTPS URL, or linkedin for the experimental browser",
       "--answers FILE|-          Versioned non-interactive choices",
       "--apply                   Apply after the draft is reviewed",
       "--experimental-browser   Explicitly opt into the visible LinkedIn browser",
@@ -113,12 +126,12 @@ const COMMANDS: readonly CommandDescription[] = [
   {
     key: "import",
     usage:
-      "stint import INPUT --format auto|json|yaml|linkedin-csv|linkedin-zip --project DIR --config FILE --data FILE --conflict POLICY [--reference-month YYYY-MM] [--dry-run] [--json]",
+      "stint import INPUT --format auto|json|yaml|linkedin-csv|linkedin-zip|pdf|image --project DIR --config FILE --data FILE --conflict POLICY [--reference-month YYYY-MM] [--dry-run] [--json]",
     description:
       "Import a local file into canonical JSON and typed TypeScript.",
     options: [
-      "INPUT                    Local JSON, YAML, LinkedIn CSV, or LinkedIn ZIP",
-      "--format FORMAT          auto, json, yaml, linkedin-csv, or linkedin-zip",
+      "INPUT                    Local PDF, PNG/JPEG, JSON, YAML, or LinkedIn CSV/ZIP",
+      "--format FORMAT          auto, json, yaml, linkedin-csv, linkedin-zip, pdf, image",
       "--project/--config/--data/--conflict  Required mutation paths and policy",
       "--reference-month YYYY-MM Month used to resolve current entries",
       "--dry-run                Plan without writing",
@@ -197,6 +210,7 @@ Commands:
 ${usage}
 
 Quick setup infers project, config, data, format, current month, and abort-on-conflict defaults.
+Agents: run stint guide --json to recommend a source using your available browser tools.
 Use stint help --advanced for legacy path, format, conflict, date, and field flags.
 Employer starts are inclusive; non-current employer ends are exclusive.
 The JSON configuration is canonical; TypeScript is generated as a typed literal.

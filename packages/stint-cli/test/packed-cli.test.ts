@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, statSync, existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -70,6 +70,10 @@ describe("packed CLI", () => {
       consumer,
     );
 
+    expect(statSync(cliTarball).size).toBeLessThan(8 * 1024 * 1024);
+    for (const dependency of ["tesseract.js", "tesseract.js-core", "@hyzyla/pdfium", "@tesseract.js-data/eng"]) {
+      expect(existsSync(join(consumer, "node_modules", dependency))).toBe(false);
+    }
     const manifest = JSON.parse(readFileSync(join(consumer, "package.json"), "utf8"));
     manifest.devDependencies = {
       next: "16.0.0",
@@ -80,6 +84,15 @@ describe("packed CLI", () => {
 
     const npxStint = (args: readonly string[]) =>
       run("npx", ["--no-install", "stint", ...args], consumer);
+    for (const file of ["profile.pdf", "scanned-profile.pdf", "profile.png"]) {
+      const extracted = JSON.parse(npxStint(["extract", join(root, "packages/stint-cli/test/fixtures/documents", file), "--json"]));
+      expect(extracted.draft.entries.map((entry: {company: string}) => entry.company)).toEqual(["Earlier Studio", "Acme Studio"]);
+      expect(extracted.extraction.ocrPages).toBe(file === "profile.pdf" ? 0 : 1);
+    }
+    const guide = JSON.parse(npxStint(["guide", "--json"]));
+    expect(guide.browserCapture.nextCommand).toEqual(["setup", "draft.json", "--json"]);
+    const urlHandoff = JSON.parse(npxStint(["setup", "https://www.linkedin.com/in/example", "--json"]));
+    expect(urlHandoff).toMatchObject({ state: "needs_browser_capabilities", applied: false });
     expect(npxStint(["--help"])).toContain("stint import INPUT");
     mkdirSync(join(consumer, "app"), { recursive: true });
     writeFileSync(
@@ -157,7 +170,7 @@ describe("packed CLI", () => {
     expect(readFileSync(join(consumer, "app/stint.data.ts"), "utf8")).toContain(
       "satisfies StintConfig",
     );
-  });
+  }, 60_000);
 });
 
 function temporaryDirectory(prefix: string): string {
@@ -170,6 +183,7 @@ function run(command: string, args: readonly string[], cwd: string): string {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
+    timeout: 60_000,
     env: {
       ...process.env,
       npm_config_offline: "true",

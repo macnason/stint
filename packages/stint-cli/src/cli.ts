@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { guideCommand } from "./commands/guide.js";
+import { extractCommand } from "./commands/extract.js";
 import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
@@ -68,6 +70,10 @@ async function dispatch(
   io: CliIo,
 ): Promise<CommandResult> {
   switch (command) {
+    case "guide":
+      return guideCommand(options);
+    case "extract":
+      return extractCommand(options);
     case "setup":
       return setupCommand(options, io);
     case "doctor":

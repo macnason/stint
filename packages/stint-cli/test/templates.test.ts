@@ -51,6 +51,7 @@ describe("experience data template", () => {
     );
     execFileSync(join(repository, "node_modules/.bin/tsc"), ["-p", directory], {
       stdio: "pipe",
+      timeout: 15_000,
     });
-  });
+  }, 20_000);
 });

@@ -1,0 +1,2 @@
+# Preserve PDF fixture byte offsets and avoid treating cross-reference tables as text.
+*.pdf binary

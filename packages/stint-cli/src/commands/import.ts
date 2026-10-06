@@ -1,3 +1,4 @@
+import { renderHistoryReview } from "../documents/review.js";
 import { lstatSync } from "node:fs";
 import { extname, resolve } from "node:path";
 import { currentUtcMonth, validateConfig } from "../config.js";
@@ -24,7 +25,7 @@ const IMPORT_VALUES = [
   "reference-month",
 ] as const;
 
-type ImportFormat = "json" | "yaml" | "linkedin-csv" | "linkedin-zip";
+export type ImportFormat = "json" | "yaml" | "linkedin-csv" | "linkedin-zip" | "pdf" | "image";
 
 export async function importCommand(
   options: ParsedOptions,
@@ -59,21 +60,26 @@ export async function importCommand(
     config: imported.config,
     referenceMonth,
   });
+  if (!dryRun && imported.warnings.some(w => w.code === "document-unresolved")) {
+    throw new CliError("E_IMPORT_SCHEMA", "Some experience entries need review. Run `stint extract INPUT --output draft.json`, correct the draft, then run `stint setup draft.json`.");
+  }
   executePlan(plan, dryRun);
   const warnings = [...imported.warnings, ...validation.warnings];
   return {
     payload: {
       ...publicPlan(plan, dryRun),
+      ...(dryRun ? { draft: imported.config } : {}),
       format,
+      ...(imported.extraction ? { extraction: imported.extraction } : {}),
       importedEntries: imported.config.entries.length,
       warningCount: warnings.length,
       warnings,
     },
-    human: `${dryRun ? "Planned" : "Imported"} ${imported.config.entries.length} experience entries with ${warnings.length} warnings.`,
+    human: `${dryRun ? "Planned" : "Imported"} ${imported.config.entries.length} experience entries with ${warnings.length} warnings.${dryRun ? `\n${renderHistoryReview({ ...imported, warnings })}` : ""}`,
   };
 }
 
-function readImportFile(inputPath: string, format: ImportFormat): Buffer {
+export function readImportFile(inputPath: string, format: ImportFormat): Buffer {
   try {
     const metadata = lstatSync(inputPath);
     if (metadata.isSymbolicLink() || !metadata.isFile()) {
@@ -97,12 +103,15 @@ function readImportFile(inputPath: string, format: ImportFormat): Buffer {
   }
 }
 
-async function parseImport(
+export async function parseImport(
   source: Buffer,
   inputPath: string,
   format: ImportFormat,
 ): Promise<ImportResult> {
   switch (format) {
+    case "pdf":
+    case "image":
+      return (await import("../documents/extract.js")).extractDocument(source, format);
     case "json":
       return parseJsonImport(source, inputPath);
     case "yaml":
@@ -114,9 +123,11 @@ async function parseImport(
   }
 }
 
-function resolveFormat(inputPath: string, requested?: string): ImportFormat {
+export function resolveFormat(inputPath: string, requested?: string): ImportFormat {
   if (requested && requested !== "auto") {
     if (
+      requested === "pdf" ||
+      requested === "image" ||
       requested === "json" ||
       requested === "yaml" ||
       requested === "linkedin-csv" ||
@@ -126,11 +137,17 @@ function resolveFormat(inputPath: string, requested?: string): ImportFormat {
     }
     throw new CliError(
       "E_OPTION",
-      "Import format must be auto, json, yaml, linkedin-csv, or linkedin-zip.",
+      "Import format must be auto, json, yaml, linkedin-csv, linkedin-zip, pdf, or image.",
       { exitCode: 2 },
     );
   }
   switch (extname(inputPath).toLowerCase()) {
+    case ".pdf":
+      return "pdf";
+    case ".png":
+    case ".jpg":
+    case ".jpeg":
+      return "image";
     case ".json":
       return "json";
     case ".yaml":

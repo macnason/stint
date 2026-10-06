@@ -16,9 +16,11 @@ export function validateLinkedInProfileUrl(value: string): URL {
   } catch (error) {
     throw new CliError("E_URL", "LinkedIn profile URL must be a valid HTTPS URL.", { cause: error, exitCode: 2 });
   }
-  if (!isLinkedInHttpsOrigin(url) || !url.pathname.startsWith("/in/")) {
+  if (!isLinkedInHttpsOrigin(url) || !LINKEDIN_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password || !/^\/in\/[^/]+(?:\/details\/experience)?\/?$/.test(url.pathname)) {
     throw new CliError("E_URL", "LinkedIn profile URL must use https://www.linkedin.com/in/... .", { exitCode: 2 });
   }
+  url.search = "";
+  url.hash = "";
   return url;
 }
 
