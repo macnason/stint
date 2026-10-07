@@ -184,7 +184,7 @@ describe("bundled offline document extraction", () => {
     writeFileSync(
       join(root, "package.json"),
       JSON.stringify({
-        dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.3" },
+        dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.4" },
       })
     );
     const args = ["setup", join(fixtures, "profile.pdf"), "--project", root];

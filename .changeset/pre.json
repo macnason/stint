@@ -6,6 +6,10 @@
     "@macworks/stint-cli": "1.0.0-next.0"
   },
   "changesets": [
-    "bright-browsers-launch"
+    "agent-browser-onboarding",
+    "bright-browsers-launch",
+    "designer-setup-wizard",
+    "local-document-import",
+    "normalised-company-logos"
   ]
 }
