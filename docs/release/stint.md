@@ -1,10 +1,10 @@
 # Stint release policy
 
-Candidate version: `1.0.0-next.3`
+Candidate version: `1.0.0-next.4`
 
 Stint is not remotely releasable yet. Package identity is now resolved: both manifests
 are named `@macworks/stint` and `@macworks/stint-cli`, and the current candidate is
-`1.0.0-next.3` (the published `1.0.0-next.2` remains immutable),
+`1.0.0-next.4` (the published `1.0.0-next.3` remains immutable),
 and carry MIT license metadata plus `publishConfig.access: public`. What remains
 unresolved is environmental — the first npm publication, npm owner, trusted
 publisher, protected environment, and (for `latest` only) the public source and
@@ -87,7 +87,7 @@ For `next`, `npm publish --tag next` performs the tag write in the authenticated
 publish request; the helper verifies the resulting registry integrity and tag and
 does not issue a separate `npm dist-tag` command.
 Until npm confirms matching package identities and registry integrity,
-documentation and UI must not claim a published `1.0.0-next.3` version or provenance.
+documentation and UI must not claim a published `1.0.0-next.4` version or provenance.
 
 ## The bootstrap set `latest`, and that could not be avoided
 

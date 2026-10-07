@@ -14,7 +14,7 @@ const history = { schemaVersion: 1, entries: [{ id: "studio", company: "Example 
 async function session() {
   const root = mkdtempSync(join(tmpdir(), "stint-wizard-test-")); roots.push(root);
   mkdirSync(join(root, "src"));
-  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "designer-portfolio", dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.3" } }));
+  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "designer-portfolio", dependencies: { vite: "8", "@macworks/stint": "1.0.0-next.4" } }));
   const wizard = await startWizard(root); sessions.push(wizard);
   const url = new URL(wizard.url);
   const request = (path: string, body?: BodyInit, headers: Record<string, string> = {}) => fetch(url.origin + path, { method: body === undefined ? "GET" : "POST", headers: { Authorization: `Bearer ${url.hash.slice(1)}`, Origin: url.origin, ...headers }, body });
