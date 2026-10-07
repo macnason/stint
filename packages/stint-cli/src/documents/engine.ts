@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PDFiumLibrary } from "@hyzyla/pdfium";
 import { createWorker, type Worker } from "tesseract.js";
+import { encode as encodePng } from "fast-png";
+import { decodeRaster, findScreenshotSlots } from "../logos/raster.js";
+import { EMPLOYER_BREAK } from "./layout.js";
 
 // Bundled as CJS so all assets resolve within the installed CLI, including in npx.
 declare const __dirname: string;
 const MAX_PIXELS = 16_000_000;
 let ocr: Worker | undefined;
-async function recognize(image: Uint8Array) {
+async function worker() {
   ocr ??= await createWorker("eng", 1, {
     workerPath: join(__dirname, "ocr.cjs"),
     langPath: __dirname,
@@ -16,8 +19,52 @@ async function recognize(image: Uint8Array) {
     gzip: true,
     errorHandler: () => {},
   });
-  const result = await ocr.recognize(Buffer.from(image));
+  return ocr;
+}
+async function recognize(image: Uint8Array) {
+  const result = await (await worker()).recognize(Buffer.from(image));
   return { text: result.data.text, confidence: result.data.confidence };
+}
+
+/**
+ * Reads a LinkedIn screenshot using its layout. Each employer has one logo slot down
+ * the left edge: words inside that column are logo artwork, not text, and each slot
+ * starts a new employer, which keeps grouped roles with their company.
+ */
+async function recognizeScreenshot(image: Uint8Array) {
+  const raster = decodeRaster(image);
+  const slots = raster ? findScreenshotSlots(raster) : [];
+  if (slots.length < 2) return recognize(image);
+  const textLeft = slots[0]!.x + slots[0]!.size;
+  // Paint the logo column white so OCR never reads artwork in the context of a line.
+  const data = new Uint8Array(raster!.data);
+  for (let y = 0; y < raster!.height; y++)
+    data.fill(255, y * raster!.width * 4, (y * raster!.width + Math.min(textLeft, raster!.width)) * 4);
+  const masked = encodePng({ width: raster!.width, height: raster!.height, data, channels: 4 });
+  const result = await (await worker()).recognize(Buffer.from(masked), {}, { blocks: true });
+  const lines = (result.data.blocks ?? [])
+    .flatMap((block) => block.paragraphs.flatMap((paragraph) => paragraph.lines))
+    .map((line) => ({
+      top: line.bbox.y0,
+      text: line.words
+        .filter((word) => (word.bbox.x0 + word.bbox.x1) / 2 > textLeft)
+        .map((word) => word.text)
+        .join(" ")
+        .trim(),
+    }))
+    .filter((line) => line.text)
+    .sort((a, b) => a.top - b.top);
+  const out: string[] = [];
+  let next = 0;
+  for (const line of lines) {
+    // A slot's first text line sits level with the top of its logo.
+    while (next < slots.length && line.top >= slots[next]!.y - slots[next]!.size * 0.25) {
+      out.push(EMPLOYER_BREAK);
+      next++;
+    }
+    out.push(line.text);
+  }
+  return { text: out.join("\n"), confidence: result.data.confidence };
 }
 
 // Leptonica reads PGM directly; no canvas or image-encoding dependency is needed.
@@ -27,7 +74,7 @@ function pgm(data: Uint8Array, width: number, height: number) {
 async function extract() {
   const source = new Uint8Array(workerData.source);
   if (workerData.format === "image")
-    return [{ ...(await recognize(source)), method: "ocr" }];
+    return [{ ...(await recognizeScreenshot(source)), method: "ocr" }];
   const binary = readFileSync(join(__dirname, "pdfium.wasm"));
   const library = await PDFiumLibrary.init({
     wasmBinary: Uint8Array.from(binary).buffer,

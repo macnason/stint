@@ -8,6 +8,9 @@ All names and histories here are synthetic. No personal LinkedIn data is include
   PDF rasterization and OCR rather than a mocked recognizer.
 - `grouped-profile.png`: anonymized grouped promotions with locations, skill
   metadata and same-month role transitions.
+- `logo-profile.png`: a 2× screenshot with logos that OCR reads as text ("SIG.",
+  "mm", three dots), a grouped employer whose location has no comma, and an
+  employer with no employment type.
 - `profile.png`: a clear screenshot in LinkedIn's role → company → date order.
 
 Expected history: Earlier Studio / Designer (Jan 2020–Dec 2021), followed by

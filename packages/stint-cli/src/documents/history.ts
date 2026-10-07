@@ -1,6 +1,7 @@
 import { addMonths, type MonthString } from "@macworks/stint/schema";
 import { parseLinkedInCsv } from "../importers/linkedin-csv.js";
 import type { ImportResult, ImportWarning } from "../importers/json.js";
+import { EMPLOYER_BREAK } from "./layout.js";
 
 const MONTH =
   "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
@@ -8,14 +9,28 @@ const SPAN = new RegExp(
   `^(${MONTH}\\s+\\d{4})\\s*[-–—]\\s*(${MONTH}\\s+\\d{4}|Present|Current)(?:\\s|$)`,
   "i"
 );
+// The employment type before a group's total duration is often misread by OCR, so any
+// single word is accepted there ("Ful-iime · 4 yrs").
 const DURATION =
-  /^(?:Full-time\s*[·•–—-]\s*)?\d+\s+(?:years?|yrs?|months?|mos?)(?:\s+\d+\s+(?:months?|mos?))?$/i;
+  /^(?:[\p{L}-]+\s*[·•–—-]\s*)?\d+\s+(?:years?|yrs?|months?|mos?)(?:\s+\d+\s+(?:months?|mos?))?$/iu;
 const EMPLOYMENT =
   /\s+[·•–—-]\s*(?:Full-time|Part-time|Self-employed|Contract|Freelance|Internship|Apprenticeship)$/i;
 const STOP =
   /^(?:Education|Licenses? (?:&|and) certifications?|Skills|Languages|Recommendations|Interests|Volunteer experience|Honors (?:&|and) awards)$/i;
 const META =
   /^(?:Page \d+ of \d+|\d+ of \d+|Experience|Full-time|Part-time|Self-employed|Contract|Freelance|Internship|Remote|Hybrid|On-site)$/i;
+
+/**
+ * OCR confuses a capital I with a lowercase l ("Macldea"). Restore the I only when the
+ * document itself spells the word that way elsewhere, such as in the company's URL.
+ */
+function restoreCapitalI(name: string, words: ReadonlySet<string>): string {
+  return name.replace(/[\p{L}\d]+/gu, (word) => {
+    if (!word.includes("l")) return word;
+    const fixed = word.replace(/(?<=\p{Ll})l(?=\p{Ll})/gu, "I");
+    return fixed !== word && words.has(fixed.toLowerCase()) ? fixed : word;
+  });
+}
 
 /** Conservative English LinkedIn layout reader. Uncertain rows stay unresolved. */
 export function parseDocumentHistory(
@@ -34,6 +49,7 @@ export function parseDocumentHistory(
   lines = lines.filter(
     (l) => !META.test(l) && !/^Skills:/i.test(l) && !/\+\d+ skills$/i.test(l)
   );
+  const words = new Set(lines.join(" ").toLowerCase().match(/[\p{L}\d]+/gu) ?? []);
   const warnings: ImportWarning[] = [
     {
       code: "document-review",
@@ -53,8 +69,16 @@ export function parseDocumentHistory(
     end: MonthString | null;
   }[] = [];
   let boundary = 0;
+  // Screenshot layout marks where each employer starts; without it, guess from text.
+  let employerKnown = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
+    if (line === EMPLOYER_BREAK) {
+      groupedCompany = undefined;
+      employerKnown = true;
+      boundary = i + 1;
+      continue;
+    }
     if (DURATION.test(line)) {
       group++;
       groupedCompany = i > boundary ? lines[i - 1] : undefined;
@@ -77,7 +101,7 @@ export function parseDocumentHistory(
     } else if (
       groupedCompany &&
       before.length > 0 &&
-      before.slice(0, -1).every((line) => line.includes(","))
+      (employerKnown || before.slice(0, -1).every((line) => line.includes(",")))
     ) {
       company = groupedCompany;
       title = before.at(-1);
@@ -89,6 +113,7 @@ export function parseDocumentHistory(
       ?.replace(EMPLOYMENT, "")
       .split(/\s+[·•]\s+/)[0]
       ?.trim();
+    if (company) company = restoreCapitalI(company, words);
     if (
       !span ||
       !company ||

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDocumentHistory } from "../src/documents/history.js";
+import { EMPLOYER_BREAK } from "../src/documents/layout.js";
 
 describe("document history", () => {
   it("reads a LinkedIn PDF, preserves promotions and ignores education", () => {
@@ -103,5 +104,36 @@ Apr 2011 - Jun 2015 - 4 yrs 3 mos`,
     expect(result.warnings.some((w) => w.code === "document-unresolved")).toBe(
       false
     );
+  });
+  it("keeps grouped roles inside the employer a screenshot logo marks", () => {
+    const result = parseDocumentHistory(
+      [
+        "Experience",
+        EMPLOYER_BREAK,
+        "Hub Studio",
+        "Full-time - 4 yrs",
+        "San Francisco Bay Area",
+        "Principal Designer",
+        "Jul 2022 - Oct 2022 - 4 mos",
+        "Staff Designer",
+        "Feb 2020 - Jul 2022 - 2 yrs 6 mos",
+        EMPLOYER_BREAK,
+        "Co-Founder",
+        "Chat Studio",
+        "Mar 2017 - Nov 2018 - 1 yr 9 mos",
+      ].join("\n"),
+      "image"
+    );
+    expect(result.config.entries.map((e) => [e.company, e.roles.map((r) => r.title)])).toEqual([
+      ["Chat Studio", ["Co-Founder"]],
+      ["Hub Studio", ["Staff Designer", "Principal Designer"]],
+    ]);
+  });
+  it("restores a capital I only when the document spells the word that way", () => {
+    const text = (url: string) =>
+      `Experience\nCo-founder\nMacldea.com - Part-time\nAug 2009 - Apr 2013 - 3 yrs 9 mos\n${url}`;
+    const company = (url: string) => parseDocumentHistory(text(url), "image").config.entries[0]!.company;
+    expect(company("http://www.macidea.com")).toBe("MacIdea.com");
+    expect(company("http://example.com")).toBe("Macldea.com");
   });
 });

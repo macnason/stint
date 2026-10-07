@@ -85,6 +85,25 @@ describe("bundled offline document extraction", () => {
       result.warnings.some((warning) => warning.code === "document-unresolved")
     ).toBe(false);
   }, 20_000);
+  it("ignores logo artwork and keeps each logo's employer together", async () => {
+    const result = await extractDocument(
+      readFileSync(join(fixtures, "logo-profile.png")),
+      "image"
+    );
+    expect(
+      result.config.entries.map((entry) => [
+        entry.company,
+        entry.roles.map((role) => role.title),
+      ])
+    ).toEqual([
+      ["Example Podcast", ["Co-Host"]],
+      ["Chat Studio", ["Co-Founder"]],
+      ["Hub Studio", ["Staff Designer", "Principal Designer"]],
+    ]);
+    expect(
+      result.warnings.some((warning) => warning.code === "document-unresolved")
+    ).toBe(false);
+  }, 20_000);
   it("holds damaged dates for review and refuses partial application", async () => {
     const root = mkdtempSync(join(tmpdir(), "stint-document-"));
     directories.push(root);
