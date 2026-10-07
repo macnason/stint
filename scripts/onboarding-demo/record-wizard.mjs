@@ -44,7 +44,6 @@ try {
  await pause(2200);
  await page.evaluate(() => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
  await pause(2200);
- await page.click('#confirmed');
  await page.click('#save');
  await page.waitForSelector('#complete:not([hidden])', { timeout: 60000 });
  await page.screenshot({ path: output.replace('.mp4', '-complete.png') });
