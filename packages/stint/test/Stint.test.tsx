@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Stint } from "../src/Stint";
@@ -59,6 +59,41 @@ describe("<Stint /> rendering", () => {
     expect(slider.getAttribute("aria-valuetext")).toContain(
       "Lead Product Designer",
     );
+  });
+
+  it("renders generated logo artwork by experience ID and falls back to the initial", () => {
+    const config = makeConfig();
+    const [first, second] = config.entries;
+    const { container } = render(
+      <Stint
+        data={config}
+        currentMonth={fixed}
+        logos={{
+          [first!.id]: { src: "/stint/logos/a.png", treatment: "badge" },
+          [second!.company]: { src: "/stint/logos/b.png", srcDark: "/stint/logos/b.dark.png" },
+        }}
+      />,
+    );
+    const rail = within(screen.getByRole("button", { name: new RegExp(first!.company) }));
+    const art = container.querySelector(`[aria-label^="${first!.company}"] .stint__logoArt`)!;
+    expect(art.getAttribute("data-treatment")).toBe("badge");
+    expect(art.querySelector("img")!.getAttribute("src")).toBe("/stint/logos/a.png");
+    expect(art.querySelector("img")!.getAttribute("alt")).toBe("");
+    expect(rail.queryByText(first!.company.slice(0, 1))).toBeNull();
+    const dark = container.querySelector(`[aria-label^="${second!.company}"] .stint__logoArt`)!;
+    expect(dark.hasAttribute("data-has-dark")).toBe(true);
+    expect([...dark.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual([
+      "/stint/logos/b.png",
+      "/stint/logos/b.dark.png",
+    ]);
+  });
+
+  it("keeps the initial fallback for companies without artwork", () => {
+    const config = makeConfig();
+    const entry = config.entries[0]!;
+    const { container } = render(<Stint data={config} currentMonth={fixed} logos={{}} />);
+    const button = container.querySelector(`[aria-label^="${entry.company}"]`)!;
+    expect(button.querySelector(".stint__logoFallback")!.textContent).toBe(entry.company.slice(0, 1).toUpperCase());
   });
 
   it("uses the horizontal axis when orientation is omitted", () => {

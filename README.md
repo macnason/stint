@@ -4,6 +4,8 @@ A tactile React timeline for presenting career history — scrub through a
 work history by month and watch the active role, company, and location
 resolve as you move.
 
+For guided setup, copy the prompt from the Stint docs into your coding agent. Share a file or LinkedIn URL, review your history, and let the agent connect the timeline to your page. Setup stays in chat by default; an optional bundled file picker is available when attachments are unavailable. Designers don't need terminal commands or file paths. See the [setup guide](packages/stint-cli/README.md).
+
 This repository holds two packages, versioned together:
 
 | Package | What it is |

@@ -79,7 +79,8 @@ describe("portfolio integration exclusion", () => {
       { cwd: root, encoding: "utf8", timeout: 120_000 },
     );
     expect(result.status).toBe(0);
-    const [report] = JSON.parse(result.stdout);
+    const reports = JSON.parse(result.stdout);
+    const report = Array.isArray(reports) ? reports[0] : reports["@macworks/stint"];
     const files = (report.files as { path: string }[]).map((f) => f.path);
     for (const file of files) {
       expect(

@@ -393,6 +393,32 @@
   opacity: 1 !important;
 }
 
+/* Artwork from `stint logos` is a finished square tile; it always keeps its radius. */
+.stint__logoArt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--stint-logo-radius);
+}
+
+.stint__readoutLogo .stint__logoArt {
+  border-radius: inherit;
+}
+
+.stint__logoImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+/* Dark variants (from `stint logos --surface transparent`) are swapped in by presets.css. */
+.stint__logoImage--dark {
+  display: none;
+}
+
 .stint__logoFallback {
   font-size: 13px;
   font-weight: 600;

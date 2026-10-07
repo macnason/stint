@@ -7,6 +7,7 @@ const MAX_JSON_DEPTH = 64;
 
 export interface ImportResult {
   readonly config: StintConfig;
+  readonly extraction?: { readonly pages: number; readonly ocrPages: number };
   readonly warnings: readonly ImportWarning[];
 }
 

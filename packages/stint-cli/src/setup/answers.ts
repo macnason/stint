@@ -1,3 +1,4 @@
+import type { AgentBrowserCapability } from "./onboarding.js";
 import { lstatSync, readSync } from "node:fs";
 
 import { CliError } from "../diagnostics.js";
@@ -16,6 +17,7 @@ export interface SetupAnswers {
   readonly conflict?: "abort" | "overwrite" | "skip";
   readonly integration?: { readonly mode?: "auto" | "handoff" };
   readonly apply?: boolean;
+  readonly capabilities?: { readonly browser?: AgentBrowserCapability };
 }
 
 export function readAnswers(path: string): SetupAnswers {
@@ -54,7 +56,15 @@ export function readAnswers(path: string): SetupAnswers {
 
 function isSetupAnswers(value: unknown): value is SetupAnswers {
   if (!isRecord(value)) return false;
-  if (!keysOnly(value, ["version", "project", "source", "session", "consent", "review", "conflict", "integration", "apply"])) return false;
+  if (!keysOnly(value, ["version", "project", "source", "session", "consent", "review", "conflict", "integration", "apply", "capabilities"])) return false;
+  if (value.capabilities !== undefined) {
+    if (!isRecord(value.capabilities) || !keysOnly(value.capabilities, ["browser"])) return false;
+    const browser = value.capabilities.browser;
+    if (browser !== undefined && (!isRecord(browser) || !keysOnly(browser, ["tool", "available", "interactive", "access"])
+      || !["shared-browser", "agent-browser", "puppeteer", "playwright", "other"].includes(browser.tool as string)
+      || typeof browser.available !== "boolean" || typeof browser.interactive !== "boolean"
+      || !["unknown", "ready", "sign-in-required", "blocked"].includes(browser.access as string))) return false;
+  }
   if (value.project !== undefined && (!isRecord(value.project) || !keysOnly(value.project, ["path"]) || !optionalString(value.project.path))) return false;
   if (value.source !== undefined) {
     if (!isRecord(value.source) || !keysOnly(value.source, ["kind", "path", "url"]) || (value.source.kind !== "file" && value.source.kind !== "linkedin-browser")) return false;

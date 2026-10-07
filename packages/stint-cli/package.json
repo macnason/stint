@@ -45,7 +45,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js && cd ../.. && node scripts/build-document-engine.mjs",
     "test": "vitest run --config ../../vitest.workspace.ts packages/stint-cli/test"
   },
   "engines": {

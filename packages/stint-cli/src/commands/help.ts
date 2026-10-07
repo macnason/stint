@@ -13,11 +13,44 @@ interface CommandDescription {
 
 const COMMANDS: readonly CommandDescription[] = [
   {
-    key: "setup",
-    usage: "stint setup [SOURCE] [--answers FILE|-] [--apply] [--json]",
-    description: "Discover the project, choose a source, preview, and apply a Stint setup.",
+    key: "guide",
+    usage: "stint guide [--json]",
+    description: "Read the canonical agent onboarding guide and browser handoff contract.",
+    options: ["--json                    Emit the guide, prompt, and capture contract"],
+  },
+  {
+    key: "extract",
+    usage: "stint extract INPUT [--output draft.json] [--json]",
+    description: "Read a local LinkedIn PDF or PNG/JPEG screenshot into a reviewable draft, without a project.",
+    options: ["--output FILE             Save a new editable canonical JSON draft", "--json                    Emit the draft and review warnings"],
+    notes: ["PDF text extraction and English OCR are bundled and run offline. Existing output files are never replaced."],
+  },
+  {
+    key: "logos",
+    usage: "stint logos --input logos.json [--screenshot FILE] [--surface white|transparent] [--apply] [--json]",
+    description: "Find, rank and optically normalise company logos for the saved history.",
     options: [
-      "SOURCE                    Local export/résumé path, or linkedin for the experimental browser path",
+      "--input FILE              {\"version\":1,\"companies\":[{\"company\",\"domain\",\"github\"?,\"file\"?}]}",
+      "--screenshot FILE         LinkedIn Experience screenshot to crop logos from as a fallback",
+      "--surface white|transparent  Bake marks onto a white tile (default) or keep transparency",
+      "--offline                 Use only local files and the screenshot",
+      "--apply                   Write public/stint/logos and stint.logos.ts",
+      "--conflict abort|overwrite  Replace earlier generated logos",
+      "--json                    Emit the review, sheet path and writes",
+    ],
+    notes: [
+      "Fetches the company's own site icons, GitHub avatar, Simple Icons and a favicon service over HTTPS. Company domains are sent to those services; nothing is sent to Stint.",
+      "Images are decoded and normalised offline in a bundled engine. Review the contact sheet before applying.",
+    ],
+  },
+  {
+    key: "setup",
+    usage: "stint setup --wizard [--project DIR] [--port PORT] [--json]",
+    description: "Open the guided file picker: upload, review your history, and save.",
+    options: [
+      "--wizard                  Start the bundled browser upload and review flow",
+      "--port PORT               Optional loopback port for private preview forwarding",
+      "SOURCE                    Local file, LinkedIn HTTPS URL, or linkedin for the experimental browser",
       "--answers FILE|-          Versioned non-interactive choices",
       "--apply                   Apply after the draft is reviewed",
       "--experimental-browser   Explicitly opt into the visible LinkedIn browser",
@@ -113,12 +146,12 @@ const COMMANDS: readonly CommandDescription[] = [
   {
     key: "import",
     usage:
-      "stint import INPUT --format auto|json|yaml|linkedin-csv|linkedin-zip --project DIR --config FILE --data FILE --conflict POLICY [--reference-month YYYY-MM] [--dry-run] [--json]",
+      "stint import INPUT --format auto|json|yaml|linkedin-csv|linkedin-zip|pdf|image --project DIR --config FILE --data FILE --conflict POLICY [--reference-month YYYY-MM] [--dry-run] [--json]",
     description:
       "Import a local file into canonical JSON and typed TypeScript.",
     options: [
-      "INPUT                    Local JSON, YAML, LinkedIn CSV, or LinkedIn ZIP",
-      "--format FORMAT          auto, json, yaml, linkedin-csv, or linkedin-zip",
+      "INPUT                    Local PDF, PNG/JPEG, JSON, YAML, or LinkedIn CSV/ZIP",
+      "--format FORMAT          auto, json, yaml, linkedin-csv, linkedin-zip, pdf, image",
       "--project/--config/--data/--conflict  Required mutation paths and policy",
       "--reference-month YYYY-MM Month used to resolve current entries",
       "--dry-run                Plan without writing",
@@ -197,6 +230,7 @@ Commands:
 ${usage}
 
 Quick setup infers project, config, data, format, current month, and abort-on-conflict defaults.
+Agents: run stint guide --json to recommend a source using your available browser tools.
 Use stint help --advanced for legacy path, format, conflict, date, and field flags.
 Employer starts are inclusive; non-current employer ends are exclusive.
 The JSON configuration is canonical; TypeScript is generated as a typed literal.
