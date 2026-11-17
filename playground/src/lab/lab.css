@@ -1,0 +1,130 @@
+/*
+ * Proposed fixes, scoped to the lab component through data-lab-* attributes
+ * so the shipped component rendered beside it stays untouched.
+ */
+
+/* The live readout layer is layout-transparent unless a fix needs a box. */
+.lab-layer {
+  display: contents;
+}
+
+/* As a box, it mirrors the readout's own flex column. */
+.stint[data-lab-readout-swap] .lab-layer,
+.stint[data-lab-reserve-readout] .lab-layer {
+  display: flex;
+  flex-direction: column;
+  align-items: inherit;
+  text-align: inherit;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ---------- reserve-readout ---------- */
+
+.stint[data-lab-reserve-readout] .lab-stack {
+  display: grid;
+  align-items: start;
+  max-width: 100%;
+}
+
+.stint[data-lab-reserve-readout] .lab-stack > .lab-layer {
+  grid-area: 1 / 1;
+}
+
+.stint[data-lab-reserve-readout][data-axis="horizontal"] .lab-stack > .lab-layer {
+  align-items: center;
+  text-align: center;
+}
+
+.stint[data-lab-reserve-readout][data-axis="vertical"] .lab-stack > .lab-layer {
+  align-items: flex-start;
+  text-align: start;
+}
+
+.stint[data-lab-reserve-readout] .lab-sizer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stint[data-lab-reserve-readout] .stint__role {
+  min-height: 1lh;
+}
+
+/* ---------- logo-scale: one source of scale ---------- */
+
+/* css-logos supersedes this; never stack both. */
+.stint[data-lab-logo-scale]:not([data-lab-css-logos]) .stint__logo {
+  scale: none;
+  transform: scale(0.6);
+}
+
+.stint[data-lab-logo-scale]:not([data-lab-css-logos]) .stint__logo:focus-visible {
+  scale: none !important;
+}
+
+/* ---------- edge-fade ---------- */
+
+@property --stint-fade-start {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 20px;
+}
+
+@property --stint-fade-end {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 14px;
+}
+
+.stint[data-lab-edge-fade] .stint__tickField {
+  transition:
+    --stint-fade-start 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    --stint-fade-end 240ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stint[data-lab-edge-fade] .stint__tickField {
+    transition: none;
+  }
+}
+
+/* ---------- css-logos: CSS owns logo scale, no Motion ---------- */
+
+.stint[data-lab-css-logos] {
+  --lab-spring: linear(0, 0.037, 0.131, 0.258, 0.399, 0.54, 0.67, 0.784, 0.879,
+    0.954, 1.009, 1.047, 1.07, 1.081, 1.083, 1.079, 1.07, 1.059, 1.047, 1.036,
+    1.025, 1.016, 1.008, 1.003, 0.998, 0.996, 0.994, 0.993, 0.993, 0.994, 1);
+}
+
+.stint[data-lab-css-logos] .stint__logo {
+  scale: var(--lab-scale, 0.6);
+  transition:
+    scale 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-radius 260ms cubic-bezier(0.3, 1.36, 0.4, 1);
+}
+
+/* Grow on a spring sampled into linear(): ~0.35s, light overshoot. */
+.stint[data-lab-css-logos] .stint__logo[data-lab-grow="true"] {
+  transition-duration: 600ms, 200ms, 260ms;
+  transition-timing-function: var(--lab-spring), cubic-bezier(0.23, 1, 0.32, 1),
+    cubic-bezier(0.3, 1.36, 0.4, 1);
+}
+
+.stint[data-lab-css-logos] .stint__logo:focus-visible {
+  scale: var(--lab-scale, 0.6) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stint[data-lab-css-logos] .stint__logo {
+    transition: none;
+  }
+}
+
+/* ---------- month-pill ---------- */
+
+.lab-monthPill {
+  font-variant-numeric: tabular-nums;
+  min-width: 9ch;
+  text-align: center;
+}

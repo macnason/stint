@@ -14,6 +14,7 @@
     "build": "npm run build --workspaces --if-present",
     "build:packages": "npm run build --workspaces --if-present",
     "lint": "eslint .",
+    "playground": "vite --config playground/vite.config.ts",
     "test": "vitest run --config vitest.workspace.ts",
     "test:packages": "vitest run --config vitest.workspace.ts packages",
     "test:policy": "vitest run --config vitest.workspace.ts tests/package",
