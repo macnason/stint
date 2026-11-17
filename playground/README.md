@@ -9,5 +9,8 @@ studios, long titles, decades-long tenures, careers with no current role.
 npm run playground
 ```
 
+Haptics come from [web-haptics](https://haptics.lochie.me), wired to
+`onFeedback` in `src/App.tsx`: a tick per month, a firmer tap per company.
+
 Nothing here ships: the playground is outside the npm workspaces and the
 package `files` list.

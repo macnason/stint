@@ -67,6 +67,10 @@ const EASE_OUT_STRONG = [0.23, 1, 0.32, 1] as const;
 const KEYBOARD_PAGE_MONTHS = 12;
 const SETTLE_ANNOUNCE_MS = 400;
 const DISENGAGE_GRACE_MS = 250;
+/** Width of the edge band that scrolls an overflowing timeline mid-drag. */
+const EDGE_ZONE_PX = 64;
+const EDGE_SCROLL_PX_PER_S = 900;
+const DRAG_SLOP_PX = 8;
 
 // Layout effects warn during server rendering; the server has nothing to measure.
 const useIsomorphicLayoutEffect =
@@ -419,6 +423,10 @@ function StintTimeline({
     reducedMotion: false,
     lastFrameAt: 0,
     lastPointerType: "",
+    pointerX: 0,
+    pointerY: 0,
+    dragStartX: 0,
+    dragMoved: false,
     axisLength: 0,
     scaleTargets: [] as (number | undefined)[],
   });
@@ -546,6 +554,24 @@ function StintTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Aim the cursor at the month under the last known pointer position.
+  const aimAtPointer = useCallback(() => {
+    const el = rulerRef.current;
+    const s = state.current;
+    const c = frameContext.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const fraction = c.horizontal
+      ? // The rect already reflects the viewport's scroll position.
+        (s.pointerX - rect.left) / Math.max(1, rect.width)
+      : 1 - (s.pointerY - rect.top) / Math.max(1, rect.height);
+    const month = c.axis.min + fraction * c.axis.span;
+    s.targetMonth = Math.min(
+      c.axis.lastIndex + 1,
+      Math.max(c.axis.firstIndex, month),
+    );
+  }, []);
+
   /* ----- frame loop: tick magnification + band paint, paused while idle ----- */
 
   const paintFrame = useCallback(() => {
@@ -554,6 +580,33 @@ function StintTimeline({
     const now = performance.now();
     const dt = s.lastFrameAt ? Math.min(64, now - s.lastFrameAt) : 1000 / 60;
     s.lastFrameAt = now;
+
+    // Dragging into an edge of an overflowing timeline scrolls it that way,
+    // faster the deeper the pointer sits. The middle stays a plain scrub.
+    const viewport = rulerRef.current?.parentElement;
+    if (
+      viewport &&
+      c.horizontal &&
+      s.dragPointerId !== null &&
+      s.dragMoved &&
+      viewport.scrollWidth - viewport.clientWidth > 1
+    ) {
+      const rect = viewport.getBoundingClientRect();
+      const zone = Math.min(EDGE_ZONE_PX, rect.width * 0.25);
+      const before = zone - (s.pointerX - rect.left);
+      const after = zone - (rect.right - s.pointerX);
+      const depth =
+        before > 0
+          ? -Math.min(1, before / zone)
+          : after > 0
+            ? Math.min(1, after / zone)
+            : 0;
+      if (depth !== 0) {
+        viewport.scrollLeft +=
+          Math.sign(depth) * depth * depth * EDGE_SCROLL_PX_PER_S * (dt / 1000);
+        aimAtPointer();
+      }
+    }
     // Time-based so the cursor feels the same at 60Hz and 120Hz.
     const lerp = s.reducedMotion ? 1 : 1 - Math.pow(1 - 0.22, dt / (1000 / 60));
     s.currentMonth += (s.targetMonth - s.currentMonth) * lerp;
@@ -838,24 +891,20 @@ function StintTimeline({
 
   /* ----- pointer input ----- */
 
-  const pointerToTarget = useCallback((event: ReactPointerEvent) => {
-    const el = rulerRef.current;
-    const s = state.current;
-    const c = frameContext.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const fraction = c.horizontal
-      ? // The rect already reflects the viewport's scroll position.
-        (event.clientX - rect.left) / Math.max(1, rect.width)
-      : 1 - (event.clientY - rect.top) / Math.max(1, rect.height);
-    const month = c.axis.min + fraction * c.axis.span;
-    s.targetMonth = Math.min(
-      c.axis.lastIndex + 1,
-      Math.max(c.axis.firstIndex, month),
-    );
-    ensureLoop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const pointerToTarget = useCallback(
+    (event: ReactPointerEvent) => {
+      const s = state.current;
+      s.pointerX = event.clientX;
+      s.pointerY = event.clientY;
+      // A tap near an edge must not scroll; only a real drag does.
+      if (Math.abs(event.clientX - s.dragStartX) > DRAG_SLOP_PX) {
+        s.dragMoved = true;
+      }
+      aimAtPointer();
+      ensureLoop();
+    },
+    [aimAtPointer, ensureLoop],
+  );
 
   const onScrubMove = useCallback(
     (event: ReactPointerEvent) => {
@@ -879,6 +928,8 @@ function StintTimeline({
       event.currentTarget.setPointerCapture(event.pointerId);
       s.dragPointerId = event.pointerId;
       s.lastPointerType = event.pointerType;
+      s.dragStartX = event.clientX;
+      s.dragMoved = false;
       engage("pointer");
       pointerToTarget(event);
     },

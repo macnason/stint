@@ -104,6 +104,50 @@ describe("pointer scrubbing", () => {
     );
   });
 
+  it("scrolls an overflowing timeline when a drag reaches its edge", () => {
+    const { slider } = mount("horizontal");
+    const timeline = slider.parentElement!;
+    let scrollLeft = 300;
+    Object.defineProperty(timeline, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value: number) => {
+        scrollLeft = value;
+      },
+    });
+    Object.defineProperty(timeline, "scrollWidth", { configurable: true, value: 900 });
+    Object.defineProperty(timeline, "clientWidth", { configurable: true, value: 600 });
+    mockRect(timeline, { left: 0, width: 600, height: 88 });
+
+    // A tap in the edge band scrubs but never scrolls.
+    act(() => {
+      fireEvent.pointerDown(slider, { pointerId: 1, clientX: 10, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(300);
+
+    // Mid-viewport drags scrub without scrolling.
+    act(() => {
+      fireEvent.pointerMove(slider, { pointerId: 1, clientX: 300, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(300);
+
+    // Dragging into the leading edge scrolls back in time.
+    act(() => {
+      fireEvent.pointerMove(slider, { pointerId: 1, clientX: 8, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBeLessThan(300);
+
+    const settled = scrollLeft;
+    act(() => {
+      fireEvent.pointerUp(slider, { pointerId: 1, clientX: 8, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(settled);
+  });
+
   it("clamps pointer movement outside the axis bounds", () => {
     const { slider } = mount("horizontal");
     act(() => {

@@ -1,6 +1,11 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useWebHaptics } from "web-haptics/react";
 
-import { Stint, type StintOrientation } from "../../packages/stint/src/index.js";
+import {
+  Stint,
+  type StintFeedbackHandler,
+  type StintOrientation,
+} from "../../packages/stint/src/index.js";
 import { designers } from "./designers.js";
 
 const REFERENCE_MONTH = { mode: "fixed", month: "2026-11" } as const;
@@ -49,6 +54,16 @@ export function App() {
   const [orientation, setOrientation] = useState<StintOrientation>("horizontal");
   const [width, setWidth] = useState<(typeof WIDTHS)[number]["value"]>("full");
 
+  // The package only emits events; the host picks the haptics.
+  const { trigger } = useWebHaptics();
+  const onFeedback = useCallback<StintFeedbackHandler>(
+    (event) => {
+      if (event.type === "month-change") void trigger("selection");
+      else if (event.type === "entry-change") void trigger("medium");
+    },
+    [trigger],
+  );
+
   return (
     <div className="page">
       <header className="masthead">
@@ -74,6 +89,7 @@ export function App() {
                 data={designer.data}
                 orientation={orientation}
                 currentMonth={REFERENCE_MONTH}
+                onFeedback={onFeedback}
               />
             </div>
           </figure>

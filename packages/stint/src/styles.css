@@ -67,7 +67,7 @@
   --stint-axis-readout-text: center;
   --stint-axis-timeline-display: flex;
   --stint-axis-cursor: ew-resize;
-  --stint-axis-touch: pan-x;
+  --stint-axis-touch: pan-y;
   --stint-axis-label-width: auto;
   --stint-axis-label-text: center;
 }
@@ -84,7 +84,7 @@
     --stint-axis-readout-text: center;
     --stint-axis-timeline-display: flex;
     --stint-axis-cursor: ew-resize;
-    --stint-axis-touch: pan-x;
+    --stint-axis-touch: pan-y;
     --stint-axis-label-width: auto;
     --stint-axis-label-text: center;
   }
