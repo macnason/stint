@@ -8,10 +8,6 @@ import type { StintChangeMeta } from "../src/feedback";
 import { installDom, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
 
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
-
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
 function overlapConfig(): StintConfig {
@@ -309,5 +305,55 @@ describe("<Stint /> current month modes", () => {
     expect(screen.getByRole("slider").getAttribute("aria-valuetext")).toContain(
       "April 2026",
     );
+  });
+});
+
+describe("readout badge", () => {
+  const badge = (container: HTMLElement) =>
+    container.querySelector<HTMLElement>(
+      ".stint__readoutLayer:not(.stint__readoutSizer) .stint__currentLabel",
+    )!;
+
+  it("shows the selected month, and Current only on today's month", () => {
+    const { container } = render(
+      <Stint data={makeConfig()} currentMonth={fixed} orientation="horizontal" />,
+    );
+    expect(badge(container).textContent).toBe("Current");
+    expect(badge(container).hasAttribute("data-visible")).toBe(true);
+
+    act(() => {
+      screen.getByRole("button", { name: /North Star Labs/ }).click();
+    });
+    expect(badge(container).textContent).toMatch(/^[A-Z][a-z]{2} \d{4}$/);
+    expect(badge(container).hasAttribute("data-visible")).toBe(true);
+  });
+
+  it("keeps a custom currentLabel slot hidden on past roles", () => {
+    const { container } = render(
+      <Stint
+        data={makeConfig()}
+        currentMonth={fixed}
+        orientation="horizontal"
+        slots={{
+          currentLabel: ({ entry }) => (entry.isCurrent ? <b>Now</b> : null),
+        }}
+      />,
+    );
+    expect(badge(container).textContent).toBe("Now");
+    act(() => {
+      screen.getByRole("button", { name: /North Star Labs/ }).click();
+    });
+    expect(badge(container).hasAttribute("data-visible")).toBe(false);
+  });
+
+  it("reserves a sizer for every entry and role", () => {
+    const { container } = render(
+      <Stint data={makeConfig()} currentMonth={fixed} orientation="horizontal" />,
+    );
+    const roles = makeConfig().entries.reduce(
+      (count, entry) => count + Math.max(1, entry.roles.length),
+      0,
+    );
+    expect(container.querySelectorAll(".stint__readoutSizer")).toHaveLength(roles);
   });
 });

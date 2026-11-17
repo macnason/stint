@@ -36,7 +36,7 @@ describe("workspace package metadata", () => {
     expect(JSON.stringify(scripts)).not.toContain("next ");
   });
 
-  it("declares the runtime peers, Motion dependency, and explicit exports", async () => {
+  it("declares the runtime peers, no dependencies, and explicit exports", async () => {
     const runtime = await readJson("packages/stint/package.json");
 
     expect(runtime.type).toBe("module");
@@ -45,7 +45,7 @@ describe("workspace package metadata", () => {
       react: "^18.2.0 || ^19.0.0",
       "react-dom": "^18.2.0 || ^19.0.0",
     });
-    expect(runtime.dependencies).toEqual({ motion: "^12.42.2" });
+    expect(runtime.dependencies).toBeUndefined();
     expect(Object.keys(runtime.exports as object)).toEqual([
       ".",
       "./schema",

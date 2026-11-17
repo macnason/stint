@@ -27,7 +27,7 @@ export default defineConfig({
       fileName: "index",
     },
     rollupOptions: {
-      external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/, /^motion(?:\/.*)?$/],
+      external: [/^react(?:\/.*)?$/, /^react-dom(?:\/.*)?$/],
       output: {
         preserveModules: true,
         preserveModulesRoot: "src",

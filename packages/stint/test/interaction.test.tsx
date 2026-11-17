@@ -6,10 +6,6 @@ import { Stint } from "../src/Stint";
 import { installDom, mockRect, useSafeFakeTimers, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
 
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
-
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
 let dom: DomHarness;
@@ -90,6 +86,9 @@ describe("pointer scrubbing", () => {
       configurable: true,
       value: 300,
     });
+    // A real browser moves the ruler's rect left as its viewport scrolls, so
+    // the rect alone locates the pointer; scrollLeft must not be added again.
+    mockRect(slider, { left: -300, width: 600, height: 88 });
 
     act(() => {
       fireEvent.pointerDown(slider, {
@@ -103,6 +102,89 @@ describe("pointer scrubbing", () => {
     expect(Number(slider.getAttribute("aria-valuenow"))).toBeGreaterThan(
       Number(slider.getAttribute("aria-valuemax")) / 2,
     );
+  });
+
+  it("scrolls an overflowing timeline when a drag reaches its edge", () => {
+    const { slider } = mount("horizontal");
+    const timeline = slider.parentElement!;
+    let scrollLeft = 300;
+    Object.defineProperty(timeline, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value: number) => {
+        scrollLeft = value;
+      },
+    });
+    Object.defineProperty(timeline, "scrollWidth", { configurable: true, value: 900 });
+    Object.defineProperty(timeline, "clientWidth", { configurable: true, value: 600 });
+    mockRect(timeline, { left: 0, width: 600, height: 88 });
+
+    // A tap in the edge band scrubs but never scrolls.
+    act(() => {
+      fireEvent.pointerDown(slider, { pointerId: 1, clientX: 10, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(300);
+
+    // Mid-viewport drags scrub without scrolling.
+    act(() => {
+      fireEvent.pointerMove(slider, { pointerId: 1, clientX: 300, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(300);
+
+    // Dragging into the leading edge scrolls back in time.
+    act(() => {
+      fireEvent.pointerMove(slider, { pointerId: 1, clientX: 8, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBeLessThan(300);
+
+    const settled = scrollLeft;
+    act(() => {
+      fireEvent.pointerUp(slider, { pointerId: 1, clientX: 8, clientY: 40 });
+      dom.flushFrames(4);
+    });
+    expect(scrollLeft).toBe(settled);
+  });
+
+  it("throws an overflowing timeline when a touch drag is released at speed", () => {
+    const { slider } = mount("horizontal");
+    const timeline = slider.parentElement!;
+    let scrollLeft = 300;
+    Object.defineProperty(timeline, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value: number) => {
+        scrollLeft = value;
+      },
+    });
+    Object.defineProperty(timeline, "scrollWidth", { configurable: true, value: 900 });
+    Object.defineProperty(timeline, "clientWidth", { configurable: true, value: 600 });
+    mockRect(timeline, { left: 0, width: 600, height: 88 });
+
+    const touch = (type: string, clientX: number, timeStamp: number) => {
+      const event = new PointerEvent(type, {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: "touch",
+        clientX,
+        clientY: 40,
+      });
+      Object.defineProperty(event, "timeStamp", { value: timeStamp });
+      fireEvent(slider, event);
+    };
+
+    act(() => {
+      touch("pointerdown", 400, 1000);
+      touch("pointermove", 380, 1016);
+      touch("pointermove", 340, 1032);
+      touch("pointermove", 300, 1048);
+      touch("pointerup", 300, 1050);
+      dom.flushFrames(30);
+    });
+    // Released moving left, mid-strip: the timeline keeps going back in time.
+    expect(scrollLeft).toBeLessThan(250);
   });
 
   it("clamps pointer movement outside the axis bounds", () => {

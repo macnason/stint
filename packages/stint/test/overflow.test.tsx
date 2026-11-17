@@ -3,15 +3,11 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Stint } from "../src/Stint";
 import { installDom, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
-
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
 
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 const styles = readFileSync(
@@ -47,7 +43,9 @@ describe("transparent overflow masks (AE16)", () => {
     expect(styles).toContain(".stint__timeline");
     expect(styles).toContain("overflow-x: auto");
     expect(styles).toContain("--stint-horizontal-min-width: 560px");
-    expect(styles).toContain("min-width: var(--stint-horizontal-min-width)");
+    expect(styles).toMatch(
+      /min-width:\s*calc\(var\(--stint-axis-h\) \* var\(--stint-horizontal-min-width\)\)/,
+    );
   });
 
   it("keeps the mask on an inner field so the ruler focus ring is unmasked", () => {
@@ -58,7 +56,7 @@ describe("transparent overflow masks (AE16)", () => {
 
   it("reveals keyboard-focused logos fully through any masking", () => {
     expect(styles).toMatch(
-      /\.stint__logo:focus-visible\s*\{[^}]*scale:\s*1\s*!important/,
+      /\.stint__logo:focus-visible\s*\{[^}]*scale:\s*max\(var\(--stint-logo-scale, 0\.6\), 1\)\s*!important/,
     );
   });
 

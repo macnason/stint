@@ -3,16 +3,12 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Stint } from "../src/Stint";
 import type { StintFeedbackEvent } from "../src/feedback";
 import { installDom, mockRect, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
-
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
 
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
@@ -131,14 +127,14 @@ describe("portfolio integration isolation", () => {
     }
   });
 
-  it("declares only react peers and motion as runtime dependencies", () => {
+  it("declares only react peers and no runtime dependencies", () => {
     const manifest = JSON.parse(
       readFileSync(
         resolve(import.meta.dirname, "../package.json"),
         "utf8",
       ),
     );
-    expect(Object.keys(manifest.dependencies)).toEqual(["motion"]);
+    expect(Object.keys(manifest.dependencies ?? {})).toEqual([]);
     expect(Object.keys(manifest.peerDependencies).sort()).toEqual([
       "react",
       "react-dom",
