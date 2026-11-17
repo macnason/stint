@@ -53,8 +53,5 @@
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
     "react-dom": "^18.2.0 || ^19.0.0"
-  },
-  "dependencies": {
-    "motion": "^12.42.2"
   }
 }

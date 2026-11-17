@@ -7,10 +7,6 @@ import { Stint } from "../src/Stint";
 import { installDom, useSafeFakeTimers, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
 
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
-
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
 let dom: DomHarness;

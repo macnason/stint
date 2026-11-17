@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -11,7 +12,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import { animate, type AnimationPlaybackControls } from "motion";
 
 import type {
   StintChangeMeta,
@@ -62,12 +62,15 @@ const SCALE_HOVER_INACTIVE = 0.78;
 const SCALE_ACTIVE = 1.25;
 const SCALE_ACTIVE_HOVER = 1.4;
 
-const EASE_BACK_IN_OUT = [0.68, -0.55, 0.265, 1.55] as const;
 const EASE_OUT_STRONG = [0.23, 1, 0.32, 1] as const;
 
 const KEYBOARD_PAGE_MONTHS = 12;
 const SETTLE_ANNOUNCE_MS = 400;
 const DISENGAGE_GRACE_MS = 250;
+
+// Layout effects warn during server rendering; the server has nothing to measure.
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /* ---------- public prop types ---------- */
 
@@ -414,10 +417,10 @@ function StintTimeline({
     disengageTimer: null as ReturnType<typeof setTimeout> | null,
     dragPointerId: null as number | null,
     reducedMotion: false,
+    lastFrameAt: 0,
     lastPointerType: "",
     axisLength: 0,
     scaleTargets: [] as (number | undefined)[],
-    scaleAnims: [] as (AnimationPlaybackControls | undefined)[],
   });
 
   // Refs so the imperative frame loop always sees the latest React state.
@@ -453,7 +456,7 @@ function StintTimeline({
     [],
   );
 
-  /* ----- Motion-driven logo scale: slow overshooting grow, snappy shrink ----- */
+  /* ----- logo scale: CSS transitions a custom property; spring grow, snappy shrink ----- */
 
   const activeEntryIndex = config.entries.findIndex(
     (candidate) => candidate.id === displayEntry?.id,
@@ -481,22 +484,15 @@ function StintTimeline({
       if (s.scaleTargets[index] === target) return;
       const growing = target > (s.scaleTargets[index] ?? SCALE_REST);
       s.scaleTargets[index] = target;
-      s.scaleAnims[index]?.stop();
       const opacity =
         s.engaged && index !== activeEntryIndex
           ? el.matches(":hover")
             ? 0.75
             : 0.45
           : 1;
-      s.scaleAnims[index] = animate(
-        el,
-        { scale: target, opacity },
-        s.reducedMotion
-          ? { duration: 0 }
-          : growing
-            ? { delay: 0.08, duration: 0.55, ease: [...EASE_BACK_IN_OUT] }
-            : { duration: 0.28, ease: [...EASE_OUT_STRONG] },
-      );
+      el.dataset.grow = growing ? "true" : "false";
+      el.style.setProperty("--stint-logo-scale", String(target));
+      el.style.opacity = String(opacity);
     },
     [activeEntryIndex, targetScaleFor],
   );
@@ -504,6 +500,23 @@ function StintTimeline({
   const syncAllScales = useCallback(() => {
     for (let i = 0; i < config.entries.length; i++) syncScale(i);
   }, [config.entries.length, syncScale]);
+
+  // Seed scale before first paint so logos never grow in on page load.
+  const scalesSeeded = useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    if (scalesSeeded.current) return;
+    scalesSeeded.current = true;
+    const s = state.current;
+    for (let i = 0; i < logoRefs.current.length; i++) {
+      const el = logoRefs.current[i];
+      if (!el) continue;
+      const target = targetScaleFor(i);
+      s.scaleTargets[i] = target;
+      el.style.setProperty("--stint-logo-scale", String(target));
+      el.style.opacity = "1";
+    }
+     
+  }, []);
 
   useEffect(() => {
     state.current.scaleTargets = [];
@@ -522,7 +535,6 @@ function StintTimeline({
       if (query.matches) {
         // Stop interpolation and overshoot instantly; state stays current.
         s.currentMonth = s.targetMonth;
-        for (const anim of s.scaleAnims) anim?.stop();
         s.scaleTargets = [];
         syncAllScales();
         ensureLoop();
@@ -539,7 +551,11 @@ function StintTimeline({
   const paintFrame = useCallback(() => {
     const s = state.current;
     const c = frameContext.current;
-    const lerp = s.reducedMotion ? 1 : 0.22;
+    const now = performance.now();
+    const dt = s.lastFrameAt ? Math.min(64, now - s.lastFrameAt) : 1000 / 60;
+    s.lastFrameAt = now;
+    // Time-based so the cursor feels the same at 60Hz and 120Hz.
+    const lerp = s.reducedMotion ? 1 : 1 - Math.pow(1 - 0.22, dt / (1000 / 60));
     s.currentMonth += (s.targetMonth - s.currentMonth) * lerp;
     const monthEpsilon = 0.05 / Math.max(1, s.axisLength / c.axis.span);
     if (Math.abs(s.targetMonth - s.currentMonth) < Math.max(0.01, monthEpsilon)) {
@@ -602,6 +618,7 @@ function StintTimeline({
 
     if (s.currentMonth === s.targetMonth && !s.engaged) {
       s.running = false;
+      s.lastFrameAt = 0;
       return;
     }
     s.raf = requestAnimationFrame(paintFrame);
@@ -637,13 +654,30 @@ function StintTimeline({
     }
   }, []);
 
+  const [axisPx, setAxisPx] = useState(0);
+
+  // Measure and paint before the browser's first paint.
+  useIsomorphicLayoutEffect(() => {
+    const el = rulerRef.current;
+    if (!el) return;
+    const s = state.current;
+    s.axisLength = horizontal ? el.offsetWidth : el.offsetHeight;
+    setAxisPx(s.axisLength);
+    cancelAnimationFrame(s.raf);
+    s.running = true;
+    paintFrame();
+     
+  }, [horizontal]);
+
   // Measure the ruler's axis length and keep it fresh across resizes.
   useEffect(() => {
     const el = rulerRef.current;
     if (!el) return;
     const measure = () => {
       const rect = el.getBoundingClientRect();
-      state.current.axisLength = horizontal ? rect.width : rect.height;
+      const length = horizontal ? rect.width : rect.height;
+      state.current.axisLength = length;
+      setAxisPx(length);
       ensureLoop();
     };
     measure();
@@ -675,6 +709,61 @@ function StintTimeline({
     s.targetMonth = committedMonthIndex + 0.5;
     ensureLoop();
   }, [committedMonthIndex, ensureLoop]);
+
+  /* ----- keep the cursor inside the scrolled viewport ----- */
+
+  // Only keyboard, logo and reset commits follow. A hovering mouse commits
+  // months too, and scrolling under a still pointer would feed back on itself.
+  const followNext = useRef(true);
+  const followedOnce = useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    if (!horizontal) return;
+    const ruler = rulerRef.current;
+    const viewport = ruler?.parentElement;
+    if (!ruler || !viewport) return;
+    if (viewport.scrollWidth - viewport.clientWidth <= 1) return;
+    const s = state.current;
+    if (s.dragPointerId !== null) return;
+    const x = fractionFor(axis, committedMonthIndex + 0.5) * ruler.offsetWidth;
+    const margin = 32;
+    const center = x - viewport.clientWidth / 2;
+    const firstFollow = !followedOnce.current;
+    if (!firstFollow && !followNext.current) return;
+    followNext.current = false;
+    followedOnce.current = true;
+    if (firstFollow) {
+      viewport.scrollLeft = center;
+      return;
+    }
+    const left = viewport.scrollLeft;
+    if (x < left + margin || x > left + viewport.clientWidth - margin) {
+      viewport.scrollTo({
+        left: center,
+        behavior: s.reducedMotion ? "auto" : "smooth",
+      });
+    }
+  }, [committedMonthIndex, horizontal, axis]);
+
+  // A host resize can push the idle cursor out of view; bring it back.
+  useEffect(() => {
+    if (!horizontal || typeof ResizeObserver === "undefined") return;
+    const ruler = rulerRef.current;
+    const viewport = ruler?.parentElement;
+    if (!ruler || !viewport) return;
+    const observer = new ResizeObserver(() => {
+      const s = state.current;
+      if (s.engaged || s.dragPointerId !== null) return;
+      if (viewport.scrollWidth - viewport.clientWidth <= 1) return;
+      const x =
+        fractionFor(frameContext.current.axis, s.targetMonth) * ruler.offsetWidth;
+      const left = viewport.scrollLeft;
+      if (x < left + 32 || x > left + viewport.clientWidth - 32) {
+        viewport.scrollLeft = x - viewport.clientWidth / 2;
+      }
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [horizontal]);
 
   /* ----- settled announcements without flooding ----- */
 
@@ -729,6 +818,7 @@ function StintTimeline({
         if (c.resetOnLeave) {
           const month = indexToMonth(c.axis.lastIndex);
           const active = resolveActiveEntry(c.config.entries, { month });
+          followNext.current = true;
           c.propose(active ? { month, entryId: active.id } : { month }, "reset");
           s.targetMonth = c.axis.lastIndex + 0.5;
         } else {
@@ -754,9 +844,9 @@ function StintTimeline({
     const c = frameContext.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    const scrollOffset = c.horizontal ? (el.parentElement?.scrollLeft ?? 0) : 0;
     const fraction = c.horizontal
-      ? (event.clientX - rect.left + scrollOffset) / Math.max(1, rect.width)
+      ? // The rect already reflects the viewport's scroll position.
+        (event.clientX - rect.left) / Math.max(1, rect.width)
       : 1 - (event.clientY - rect.top) / Math.max(1, rect.height);
     const month = c.axis.min + fraction * c.axis.span;
     s.targetMonth = Math.min(
@@ -861,6 +951,7 @@ function StintTimeline({
       const month = indexToMonth(next);
       const active = resolveActiveEntry(c.config.entries, { month });
       const previous = c.activeEntryId;
+      followNext.current = true;
       c.propose(active ? { month, entryId: active.id } : { month }, "keyboard");
       current.targetMonth = next + 0.5;
       ensureLoop();
@@ -906,6 +997,40 @@ function StintTimeline({
     },
     [moveSelection],
   );
+
+  /* ----- soften readout swaps ----- */
+
+  const liveLayerRef = useRef<HTMLDivElement>(null);
+  const roleRef = useRef<HTMLSpanElement>(null);
+  const shownEntryId = useRef(displayEntry?.id);
+  const shownRoleId = useRef(role?.id);
+  useIsomorphicLayoutEffect(() => {
+    const previousEntry = shownEntryId.current;
+    const previousRole = shownRoleId.current;
+    shownEntryId.current = displayEntry?.id;
+    shownRoleId.current = role?.id;
+    if (state.current.reducedMotion) return;
+    if (typeof Element === "undefined" || !Element.prototype.animate) return;
+    const swapIn: Keyframe[] = [
+      { opacity: 0, filter: "blur(3px)", translate: "0 4px" },
+      { opacity: 1, filter: "blur(0px)", translate: "0 0" },
+    ];
+    const timing = { duration: 180, easing: `cubic-bezier(${EASE_OUT_STRONG.join(",")})` };
+    if (previousEntry !== displayEntry?.id && liveLayerRef.current) {
+      liveLayerRef.current.animate(swapIn, timing);
+    } else if (previousRole !== role?.id && roleRef.current) {
+      roleRef.current.animate(swapIn, timing);
+    }
+  }, [displayEntry?.id, role?.id]);
+
+  /* ----- thin year labels to the space available ----- */
+
+  const labelStride = useMemo(() => {
+    if (axisPx === 0) return 1;
+    const pxPerYear = (axisPx / axis.span) * 12;
+    const minGap = horizontal ? 44 : 20;
+    return [1, 2, 5, 10, 20, 50].find((n) => n * pxPerYear >= minGap) ?? 50;
+  }, [axisPx, axis.span, horizontal]);
 
   /* ----- rendering ----- */
 
@@ -957,22 +1082,35 @@ function StintTimeline({
   };
   const renderLogo = slots?.logo ?? defaultLogo;
 
+  const atOldest = committedMonthIndex <= axis.firstIndex;
+  const atNewest = committedMonthIndex >= axis.lastIndex;
+
+  // A custom badge slot keeps its original contract: shown only on current
+  // roles. Without one, the badge always shows the selected month.
+  const hasBadgeSlot = Boolean(slots?.currentLabel);
+  const showsCurrentText = hasBadgeSlot ? isCurrent : isCurrent && atNewest;
+  const badgeText = showsCurrentText
+    ? currentLabelText
+    : formatMonth(selection?.month ?? indexToMonth(axis.lastIndex), { locale });
+
   const readoutBody = displayEntry ? (
     <>
       <span
         className={cx("stint__currentLabel", classNames?.currentLabel)}
-        data-visible={isCurrent || undefined}
-        aria-hidden={!isCurrent}
+        data-visible={!hasBadgeSlot || isCurrent || undefined}
+        aria-hidden={!showsCurrentText}
       >
         {slots?.currentLabel?.({ entry: displayEntry }) ?? (
-          <span className="stint__currentBadge">{currentLabelText}</span>
+          <span className="stint__currentBadge">{badgeText}</span>
         )}
       </span>
       <span className="stint__readoutLogo">
         {renderLogo({ entry: displayEntry, isActive: true, size: 48 })}
       </span>
       <span className="stint__company">{displayEntry.company}</span>
-      <span className="stint__role">{role?.title ?? ""}</span>
+      <span ref={roleRef} className="stint__role">
+        {role?.title ?? ""}
+      </span>
       {displayEntry.location ? (
         <span className="stint__location">{displayEntry.location}</span>
       ) : (
@@ -983,23 +1121,51 @@ function StintTimeline({
     </>
   ) : null;
 
+  // Hidden sizers, one per entry and role, hold the readout at its tallest
+  // state so scrubbing never moves the ruler or re-centres the text.
+  const sizers = config.entries.flatMap((sizerEntry) =>
+    (sizerEntry.roles.length > 0 ? sizerEntry.roles : [null]).map(
+      (sizerRole) => (
+        <div
+          key={`${sizerEntry.id}:${sizerRole?.id ?? ""}`}
+          className="stint__readoutLayer stint__readoutSizer"
+          aria-hidden="true"
+        >
+          <span className="stint__currentLabel" />
+          <span className="stint__readoutLogo" />
+          <span className="stint__company">{sizerEntry.company}</span>
+          <span className="stint__role">{sizerRole?.title ?? ""}</span>
+          <span className="stint__location">
+            {sizerEntry.location ||
+              formatExperienceRange(sizerEntry, {
+                locale,
+                currentLabel: currentLabelText,
+              })}
+          </span>
+        </div>
+      ),
+    ),
+  );
+
   const readout = displayEntry ? (
     <div className={cx("stint__readout", classNames?.readout)}>
-      {slots?.readout
-        ? slots.readout({
-            entry: displayEntry,
-            role,
-            month: selection?.month ?? indexToMonth(axis.lastIndex),
-            isCurrent,
-            formattedRange: rangeText,
-            children: readoutBody,
-          })
-        : readoutBody}
+      <div className="stint__readoutStack">
+        {sizers}
+        <div ref={liveLayerRef} className="stint__readoutLayer">
+          {slots?.readout
+            ? slots.readout({
+                entry: displayEntry,
+                role,
+                month: selection?.month ?? indexToMonth(axis.lastIndex),
+                isCurrent,
+                formattedRange: rangeText,
+                children: readoutBody,
+              })
+            : readoutBody}
+        </div>
+      </div>
     </div>
   ) : null;
-
-  const atOldest = committedMonthIndex <= axis.firstIndex;
-  const atNewest = committedMonthIndex >= axis.lastIndex;
 
   return (
     <div
@@ -1045,6 +1211,18 @@ function StintTimeline({
                 type="button"
                 className={cx("stint__logo", classNames?.logo)}
                 data-active={railEntry.id === displayEntry?.id || undefined}
+                // Rendered, not only written imperatively: server HTML paints
+                // the active logo at size, and the easing flips in the same
+                // commit as the scale it applies to.
+                data-grow={railEntry.id === displayEntry?.id}
+                style={
+                  {
+                    "--stint-logo-scale":
+                      railEntry.id === displayEntry?.id
+                        ? SCALE_ACTIVE
+                        : SCALE_REST,
+                  } as CSSProperties
+                }
                 aria-label={`${railEntry.company}, ${formatExperienceRange(railEntry, { locale, currentLabel: currentLabelText })}`}
                 aria-pressed={railEntry.id === displayEntry?.id}
                 onClick={() => {
@@ -1053,6 +1231,7 @@ function StintTimeline({
                   );
                   const month = indexToMonth(mid);
                   const previous = frameContext.current.activeEntryId;
+                  followNext.current = true;
                   propose({ month, entryId: railEntry.id }, "logo");
                   state.current.targetMonth = mid + 0.5;
                   ensureLoop();
@@ -1116,10 +1295,11 @@ function StintTimeline({
                   data-major={tick.major || undefined}
                   style={{ "--stint-p": tick.fraction } as CSSProperties}
                 />
-                {tick.major && (
+                {tick.major && tick.year % labelStride === 0 && (
                   <span
                     ref={(el) => {
                       if (el) labelRefs.current.set(tick.year, el);
+                      else labelRefs.current.delete(tick.year);
                     }}
                     className={cx("stint__tickLabel", classNames?.tickLabel)}
                     style={{ "--stint-p": tick.fraction } as CSSProperties}

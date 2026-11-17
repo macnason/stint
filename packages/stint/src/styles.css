@@ -31,17 +31,26 @@
   --stint-horizontal-min-width: 560px;
   --stint-length: 340px;
 
+  /* Axis presets. Every axis-dependent rule below reads these, so the
+     [data-axis] attribute and the responsive container query only have to
+     flip one short list. Vertical is the default. */
+  --stint-axis-h: 0;
+  --stint-axis-readout-width: auto;
+  --stint-axis-readout-align: flex-start;
+  --stint-axis-readout-text: start;
+  --stint-axis-timeline-display: contents;
+  --stint-axis-cursor: ns-resize;
+  --stint-axis-touch: none;
+  --stint-axis-label-width: 38px;
+  --stint-axis-label-text: end;
+
   display: flex;
   position: relative;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.stint__timeline {
-  display: contents;
-}
-
-/* ---------- vertical composition: rail | ruler | readout ---------- */
+/* ---------- axis: the root's own direction follows [data-axis] ---------- */
 
 .stint[data-axis="vertical"] {
   flex-direction: row;
@@ -49,48 +58,59 @@
   gap: 4px;
 }
 
-.stint[data-axis="vertical"] .stint__readout {
-  order: 3;
-  flex: 1;
-  justify-content: center;
-  padding-inline-start: 12px;
-  align-items: flex-start;
-  text-align: start;
-}
-
-.stint[data-axis="vertical"] .stint__rail {
-  order: 1;
-  width: 42px;
-  height: var(--stint-length);
-  flex-shrink: 0;
-}
-
-.stint[data-axis="vertical"] .stint__ruler {
-  order: 2;
-  width: 110px;
-  height: var(--stint-length);
-  flex-shrink: 0;
-  cursor: ns-resize;
-}
-
-/* ---------- horizontal composition: readout above rail and ruler ---------- */
-
 .stint[data-axis="horizontal"] {
   flex-direction: column;
   gap: 10px;
+  --stint-axis-h: 1;
+  --stint-axis-readout-width: 100%;
+  --stint-axis-readout-align: center;
+  --stint-axis-readout-text: center;
+  --stint-axis-timeline-display: flex;
+  --stint-axis-cursor: ew-resize;
+  --stint-axis-touch: pan-x;
+  --stint-axis-label-width: auto;
+  --stint-axis-label-text: center;
 }
 
-.stint[data-axis="horizontal"] .stint__readout {
-  order: 1;
-  width: 100%;
-  align-items: center;
-  text-align: center;
-  padding-block-end: 12px;
+/* Responsive mode: CSS owns the 40rem visual switch, so markup renders
+   identically on the server for either outcome. A container cannot query
+   itself, so the preset lands on the root's children and inherits from
+   there; the root's own direction still waits for the hook's [data-axis]. */
+@container stint (max-width: 39.999rem) {
+  .stint[data-orientation="responsive"] > * {
+    --stint-axis-h: 1;
+    --stint-axis-readout-width: 100%;
+    --stint-axis-readout-align: center;
+    --stint-axis-readout-text: center;
+    --stint-axis-timeline-display: flex;
+    --stint-axis-cursor: ew-resize;
+    --stint-axis-touch: pan-x;
+    --stint-axis-label-width: auto;
+    --stint-axis-label-text: center;
+  }
 }
 
-.stint[data-axis="horizontal"] .stint__timeline {
+@container stint (min-width: 40rem) {
+  .stint[data-orientation="responsive"] > * {
+    --stint-axis-h: 0;
+    --stint-axis-readout-width: auto;
+    --stint-axis-readout-align: flex-start;
+    --stint-axis-readout-text: start;
+    --stint-axis-timeline-display: contents;
+    --stint-axis-cursor: ns-resize;
+    --stint-axis-touch: none;
+    --stint-axis-label-width: 38px;
+    --stint-axis-label-text: end;
+  }
+}
+
+/* ---------- timeline viewport ---------- */
+
+/* Vertical: display: contents, so rail and ruler sit in the root's row.
+   Horizontal: a scrolling column, so a narrow host never compresses labels. */
+.stint__timeline {
+  display: var(--stint-axis-timeline-display);
   order: 2;
-  display: flex;
   min-width: 0;
   width: 100%;
   flex-direction: column;
@@ -99,173 +119,8 @@
   scrollbar-width: none;
 }
 
-.stint[data-axis="horizontal"] .stint__timeline::-webkit-scrollbar {
+.stint__timeline::-webkit-scrollbar {
   display: none;
-}
-
-.stint[data-axis="horizontal"] .stint__timeline > .stint__rail,
-.stint[data-axis="horizontal"] .stint__timeline > .stint__ruler {
-  width: 100%;
-  min-width: var(--stint-horizontal-min-width);
-}
-
-.stint[data-axis="horizontal"] .stint__rail {
-  height: 42px;
-  flex-shrink: 0;
-  touch-action: pan-x;
-}
-
-.stint[data-axis="horizontal"] .stint__ruler {
-  height: 88px;
-  flex-shrink: 0;
-  cursor: ew-resize;
-  touch-action: pan-x;
-}
-
-/* ---------- responsive mode: CSS owns the 40rem visual switch ----------
-   Markup renders identically on the server for either outcome; only the
-   flex direction, ordering, and axis mapping change with container width.
-   The [data-axis] rules above still apply once the hook syncs semantics;
-   these container rules win during and after first paint so there is no
-   geometry flash. */
-
-@container stint (max-width: 39.999rem) {
-  .stint[data-orientation="responsive"] {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .stint[data-orientation="responsive"] .stint__readout {
-    order: 1;
-    width: 100%;
-    flex: initial;
-    align-items: center;
-    text-align: center;
-    padding-inline-start: 0;
-    padding-block-end: 12px;
-  }
-  .stint[data-orientation="responsive"] .stint__timeline {
-    order: 2;
-    display: flex;
-    min-width: 0;
-    width: 100%;
-    flex-direction: column;
-    gap: 10px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .stint[data-orientation="responsive"] .stint__timeline::-webkit-scrollbar {
-    display: none;
-  }
-  .stint[data-orientation="responsive"] .stint__timeline > .stint__rail,
-  .stint[data-orientation="responsive"] .stint__timeline > .stint__ruler {
-    width: 100%;
-    min-width: var(--stint-horizontal-min-width);
-  }
-  .stint[data-orientation="responsive"] .stint__rail {
-    width: 100%;
-    height: 42px;
-    touch-action: pan-x;
-  }
-  .stint[data-orientation="responsive"] .stint__ruler {
-    width: 100%;
-    height: 88px;
-    cursor: ew-resize;
-    touch-action: pan-x;
-  }
-  .stint[data-orientation="responsive"] .stint__logoShell {
-    top: 50%;
-    left: calc(var(--stint-p) * 100%);
-    translate: -50% -50%;
-  }
-  .stint[data-orientation="responsive"] .stint__tick {
-    top: 24px;
-    left: calc(var(--stint-p) * 100%);
-    width: 2px;
-    height: 24px;
-    transform-origin: top center;
-  }
-  .stint[data-orientation="responsive"] .stint__tick[data-major] {
-    height: 32px;
-  }
-  .stint[data-orientation="responsive"] .stint__tickLabel {
-    top: 0;
-    left: calc(var(--stint-p) * 100%);
-    translate: -50% 0;
-    text-align: center;
-    width: auto;
-  }
-  .stint[data-orientation="responsive"] .stint__tickField {
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      #000 var(--stint-fade-start, 20px),
-      #000 calc(100% - var(--stint-fade-end, 14px)),
-      transparent 100%
-    );
-  }
-}
-
-@container stint (min-width: 40rem) {
-  .stint[data-orientation="responsive"] {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 4px;
-  }
-  .stint[data-orientation="responsive"] .stint__readout {
-    order: 3;
-    flex: 1;
-    width: auto;
-    justify-content: center;
-    align-items: flex-start;
-    text-align: start;
-    padding-inline-start: 12px;
-    padding-block-end: 0;
-  }
-  .stint[data-orientation="responsive"] .stint__timeline {
-    display: contents;
-  }
-  .stint[data-orientation="responsive"] .stint__rail {
-    order: 1;
-    width: 42px;
-    height: var(--stint-length);
-  }
-  .stint[data-orientation="responsive"] .stint__ruler {
-    order: 2;
-    width: 110px;
-    height: var(--stint-length);
-    cursor: ns-resize;
-  }
-  .stint[data-orientation="responsive"] .stint__logoShell {
-    left: 0;
-    top: calc((1 - var(--stint-p)) * 100%);
-    translate: 0 -50%;
-  }
-  .stint[data-orientation="responsive"] .stint__tick {
-    left: 42px;
-    top: calc((1 - var(--stint-p)) * 100%);
-    height: 2px;
-    width: 24px;
-    transform-origin: center left;
-  }
-  .stint[data-orientation="responsive"] .stint__tick[data-major] {
-    width: 32px;
-  }
-  .stint[data-orientation="responsive"] .stint__tickLabel {
-    left: 0;
-    top: calc((1 - var(--stint-p)) * 100%);
-    translate: 0 -50%;
-    width: 38px;
-    text-align: end;
-  }
-  .stint[data-orientation="responsive"] .stint__tickField {
-    mask-image: linear-gradient(
-      to bottom,
-      transparent 0,
-      #000 var(--stint-fade-start, 20px),
-      #000 calc(100% - var(--stint-fade-end, 14px)),
-      transparent 100%
-    );
-  }
 }
 
 /* ---------- readout ---------- */
@@ -274,6 +129,37 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  order: calc(3 - 2 * var(--stint-axis-h));
+  flex: calc(1 - var(--stint-axis-h)) 1 auto;
+  width: var(--stint-axis-readout-width);
+  justify-content: center;
+  align-items: var(--stint-axis-readout-align);
+  text-align: var(--stint-axis-readout-text);
+  padding-inline-start: calc((1 - var(--stint-axis-h)) * 12px);
+  padding-block-end: calc(var(--stint-axis-h) * 12px);
+}
+
+/* Every entry's readout shares one grid cell. Hidden sizers hold the cell at
+   its tallest state, so scrubbing never moves the ruler or the text. */
+.stint__readoutStack {
+  display: grid;
+  align-items: start;
+  max-width: 100%;
+}
+
+.stint__readoutLayer {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: var(--stint-axis-readout-align);
+  text-align: var(--stint-axis-readout-text);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.stint__readoutSizer {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .stint__currentLabel {
@@ -300,6 +186,10 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  /* The badge shows the scrubbed month; hold its width as digits change. */
+  font-variant-numeric: tabular-nums;
+  min-width: 9ch;
+  text-align: center;
 }
 
 .stint__readoutLogo {
@@ -329,6 +219,8 @@
   font-size: 0.9375em;
   font-weight: 500;
   color: var(--stint-muted);
+  /* An entry with no role still holds its line. */
+  min-height: 1lh;
 }
 
 .stint__location {
@@ -344,23 +236,24 @@
 
 .stint__rail {
   position: relative;
-  touch-action: none;
+  order: 1;
+  flex-shrink: 0;
+  width: calc(var(--stint-axis-h) * 100% + (1 - var(--stint-axis-h)) * 42px);
+  min-width: calc(var(--stint-axis-h) * var(--stint-horizontal-min-width));
+  height: calc(
+    var(--stint-axis-h) * 42px + (1 - var(--stint-axis-h)) * var(--stint-length)
+  );
+  touch-action: var(--stint-axis-touch);
 }
 
 .stint__logoShell {
   position: absolute;
-}
-
-.stint[data-axis="horizontal"] .stint__logoShell {
-  top: 50%;
-  left: calc(var(--stint-p) * 100%);
-  translate: -50% -50%;
-}
-
-.stint[data-axis="vertical"] .stint__logoShell {
-  left: 0;
-  top: calc((1 - var(--stint-p)) * 100%);
-  translate: 0 -50%;
+  left: calc(var(--stint-axis-h) * var(--stint-p) * 100%);
+  top: calc(
+    var(--stint-axis-h) * 50% + (1 - var(--stint-axis-h)) *
+      (1 - var(--stint-p)) * 100%
+  );
+  translate: calc(var(--stint-axis-h) * -50%) -50%;
 }
 
 .stint__logo {
@@ -376,9 +269,28 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
-  scale: 0.6;
+  /* One source of scale: the component writes --stint-logo-scale and CSS
+     transitions it. Shrinking is a quick ease-out. */
+  scale: var(--stint-logo-scale, 0.6);
   border-radius: 999px;
-  transition: border-radius 260ms cubic-bezier(0.3, 1.36, 0.4, 1);
+  transition:
+    scale 220ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    border-radius 260ms cubic-bezier(0.3, 1.36, 0.4, 1);
+}
+
+/* Growing rides a spring sampled into linear(): ~0.35s with a light
+   overshoot. A retarget mid-flight starts from the current value. */
+.stint__logo[data-grow="true"] {
+  transition-duration: 600ms, 200ms, 260ms;
+  transition-timing-function:
+    linear(
+      0, 0.037, 0.131, 0.258, 0.399, 0.54, 0.67, 0.784, 0.879, 0.954, 1.009,
+      1.047, 1.07, 1.081, 1.083, 1.079, 1.07, 1.059, 1.047, 1.036, 1.025,
+      1.016, 1.008, 1.003, 0.998, 0.996, 0.994, 0.993, 0.993, 0.994, 1
+    ),
+    cubic-bezier(0.23, 1, 0.32, 1),
+    cubic-bezier(0.3, 1.36, 0.4, 1);
 }
 
 .stint__logo[data-active] {
@@ -388,8 +300,8 @@
 .stint__logo:focus-visible {
   outline: 2px solid var(--stint-focus);
   outline-offset: 2px;
-  /* Focused logos are always fully revealed. */
-  scale: 1 !important;
+  /* Focused logos are always fully revealed, and never shrink on focus. */
+  scale: max(var(--stint-logo-scale, 0.6), 1) !important;
   opacity: 1 !important;
 }
 
@@ -429,10 +341,17 @@
 
 .stint__ruler {
   position: relative;
-  touch-action: none;
+  order: 2;
+  flex-shrink: 0;
+  width: calc(var(--stint-axis-h) * 100% + (1 - var(--stint-axis-h)) * 110px);
+  min-width: calc(var(--stint-axis-h) * var(--stint-horizontal-min-width));
+  height: calc(
+    var(--stint-axis-h) * 88px + (1 - var(--stint-axis-h)) * var(--stint-length)
+  );
+  cursor: var(--stint-axis-cursor);
+  touch-action: var(--stint-axis-touch);
   outline: none;
   border-radius: 12px;
-  flex-shrink: 0;
 }
 
 .stint__ruler:focus-visible {
@@ -446,24 +365,32 @@
   inset: 0;
 }
 
-.stint[data-axis="horizontal"] .stint__tickField {
-  mask-image: linear-gradient(
-    to right,
-    transparent 0,
-    #000 var(--stint-fade-start, 20px),
-    #000 calc(100% - var(--stint-fade-end, 14px)),
-    transparent 100%
-  );
+/* The fade lengths are registered so reaching an edge eases the mask off
+   instead of snapping it. */
+@property --stint-fade-start {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 20px;
 }
 
-.stint[data-axis="vertical"] .stint__tickField {
+@property --stint-fade-end {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 14px;
+}
+
+/* 180deg fades top to bottom (vertical); 90deg fades left to right. */
+.stint__tickField {
   mask-image: linear-gradient(
-    to bottom,
+    calc(180deg - var(--stint-axis-h) * 90deg),
     transparent 0,
     #000 var(--stint-fade-start, 20px),
     #000 calc(100% - var(--stint-fade-end, 14px)),
     transparent 100%
   );
+  transition:
+    --stint-fade-start 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    --stint-fade-end 240ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Exhausted edges drop their fade so the boundary reads as reachable.
@@ -491,28 +418,30 @@
   background: var(--stint-ruler);
 }
 
-.stint[data-axis="horizontal"] .stint__tick {
-  top: 24px;
-  left: calc(var(--stint-p) * 100%);
-  width: 2px;
-  height: 24px;
-  transform-origin: top center;
+.stint__tick {
+  --stint-tick-length: 24px;
+  left: calc(
+    var(--stint-axis-h) * var(--stint-p) * 100% + (1 - var(--stint-axis-h)) * 42px
+  );
+  top: calc(
+    var(--stint-axis-h) * 24px + (1 - var(--stint-axis-h)) *
+      (1 - var(--stint-p)) * 100%
+  );
+  width: calc(
+    var(--stint-axis-h) * 2px + (1 - var(--stint-axis-h)) *
+      var(--stint-tick-length)
+  );
+  height: calc(
+    var(--stint-axis-h) * var(--stint-tick-length) +
+      (1 - var(--stint-axis-h)) * 2px
+  );
+  /* top centre when horizontal, centre left when vertical */
+  transform-origin: calc(var(--stint-axis-h) * 50%)
+    calc((1 - var(--stint-axis-h)) * 50%);
 }
 
-.stint[data-axis="horizontal"] .stint__tick[data-major] {
-  height: 32px;
-}
-
-.stint[data-axis="vertical"] .stint__tick {
-  left: 42px;
-  top: calc((1 - var(--stint-p)) * 100%);
-  height: 2px;
-  width: 24px;
-  transform-origin: center left;
-}
-
-.stint[data-axis="vertical"] .stint__tick[data-major] {
-  width: 32px;
+.stint__tick[data-major] {
+  --stint-tick-length: 32px;
 }
 
 .stint__tickLabel {
@@ -523,19 +452,13 @@
   color: var(--stint-muted);
 }
 
-.stint[data-axis="horizontal"] .stint__tickLabel {
-  top: 0;
-  left: calc(var(--stint-p) * 100%);
-  translate: -50% 0;
-  text-align: center;
-}
-
-.stint[data-axis="vertical"] .stint__tickLabel {
-  left: 0;
-  top: calc((1 - var(--stint-p)) * 100%);
-  translate: 0 -50%;
-  width: 38px;
-  text-align: end;
+.stint__tickLabel {
+  left: calc(var(--stint-axis-h) * var(--stint-p) * 100%);
+  top: calc((1 - var(--stint-axis-h)) * (1 - var(--stint-p)) * 100%);
+  translate: calc(var(--stint-axis-h) * -50%)
+    calc((1 - var(--stint-axis-h)) * -50%);
+  width: var(--stint-axis-label-width);
+  text-align: var(--stint-axis-label-text);
 }
 
 /* Hide native scrollbars in any component-owned overflow region. */
@@ -564,12 +487,14 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stint__logo,
-  .stint__currentLabel {
+  .stint__currentLabel,
+  .stint__tickField {
     transition: none;
   }
 }
 
 .stint[data-reduced-motion] .stint__logo,
-.stint[data-reduced-motion] .stint__currentLabel {
+.stint[data-reduced-motion] .stint__currentLabel,
+.stint[data-reduced-motion] .stint__tickField {
   transition: none;
 }

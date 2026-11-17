@@ -6,10 +6,6 @@ import { Stint } from "../src/Stint";
 import { installDom, mockRect, useSafeFakeTimers, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
 
-vi.mock("motion", () => ({
-  animate: vi.fn(() => ({ stop: vi.fn() })),
-}));
-
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
 let dom: DomHarness;
@@ -90,6 +86,9 @@ describe("pointer scrubbing", () => {
       configurable: true,
       value: 300,
     });
+    // A real browser moves the ruler's rect left as its viewport scrolls, so
+    // the rect alone locates the pointer; scrollLeft must not be added again.
+    mockRect(slider, { left: -300, width: 600, height: 88 });
 
     act(() => {
       fireEvent.pointerDown(slider, {

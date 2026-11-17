@@ -48,10 +48,10 @@ describe("default entry size budget (R42)", () => {
     expect(total).toBeLessThanOrEqual(SIZE_LIMIT_BYTES);
   });
 
-  it("externalizes react, react-dom, and motion rather than bundling them", () => {
+  it("externalizes react and react-dom, and ships no animation library", () => {
     const index = readFileSync(resolve(distDir, "Stint.js"), "utf8");
     expect(index).toMatch(/from\s+"react"/);
-    expect(index).toMatch(/from\s+"motion"/);
+    expect(index).not.toMatch(/from\s+"motion"/);
     // Bundled copies would show up as their internal markers.
     expect(index).not.toContain("react.production");
     expect(index).not.toContain("motion-dom");

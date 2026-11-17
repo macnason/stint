@@ -1,22 +1,24 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Stint } from "../src/Stint";
 import { installDom, mockRect, type DomHarness } from "./dom";
 import { makeConfig } from "./fixtures";
 
-const animateMock = vi.fn(() => ({ stop: vi.fn() }));
-vi.mock("motion", () => ({
-  animate: (...args: unknown[]) => animateMock(...args),
-}));
+const styles = readFileSync(
+  resolve(import.meta.dirname, "../src/styles.css"),
+  "utf8",
+);
 
 const fixed = { mode: "fixed", month: "2025-06" } as const;
 
 let dom: DomHarness;
 
 beforeEach(() => {
-  animateMock.mockClear();
   dom = installDom();
 });
 
@@ -38,16 +40,18 @@ describe("reduced motion", () => {
     });
     expect(root.hasAttribute("data-reduced-motion")).toBe(true);
 
-    // Every scale animation issued after the flip must be instantaneous.
-    animateMock.mockClear();
+    // Logo scale is a CSS transition, so the stylesheet must switch it off
+    // under the same attribute, and the scale itself must still update.
+    expect(styles).toMatch(
+      /\.stint\[data-reduced-motion\] \.stint__logo,[^{]*\{\s*transition:\s*none/,
+    );
     const oldest = screen.getByRole("button", { name: /North Star Labs/ });
     act(() => {
       oldest.click();
     });
-    expect(animateMock).toHaveBeenCalled();
-    for (const call of animateMock.mock.calls) {
-      expect((call[2] as { duration?: number }).duration).toBe(0);
-    }
+    expect(
+      Number(oldest.style.getPropertyValue("--stint-logo-scale")),
+    ).toBeGreaterThanOrEqual(1.25);
   });
 
   it("keeps semantic state current while motion is disabled", () => {
