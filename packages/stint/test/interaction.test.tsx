@@ -148,6 +148,45 @@ describe("pointer scrubbing", () => {
     expect(scrollLeft).toBe(settled);
   });
 
+  it("throws an overflowing timeline when a touch drag is released at speed", () => {
+    const { slider } = mount("horizontal");
+    const timeline = slider.parentElement!;
+    let scrollLeft = 300;
+    Object.defineProperty(timeline, "scrollLeft", {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (value: number) => {
+        scrollLeft = value;
+      },
+    });
+    Object.defineProperty(timeline, "scrollWidth", { configurable: true, value: 900 });
+    Object.defineProperty(timeline, "clientWidth", { configurable: true, value: 600 });
+    mockRect(timeline, { left: 0, width: 600, height: 88 });
+
+    const touch = (type: string, clientX: number, timeStamp: number) => {
+      const event = new PointerEvent(type, {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: "touch",
+        clientX,
+        clientY: 40,
+      });
+      Object.defineProperty(event, "timeStamp", { value: timeStamp });
+      fireEvent(slider, event);
+    };
+
+    act(() => {
+      touch("pointerdown", 400, 1000);
+      touch("pointermove", 380, 1016);
+      touch("pointermove", 340, 1032);
+      touch("pointermove", 300, 1048);
+      touch("pointerup", 300, 1050);
+      dom.flushFrames(30);
+    });
+    // Released moving left, mid-strip: the timeline keeps going back in time.
+    expect(scrollLeft).toBeLessThan(250);
+  });
+
   it("clamps pointer movement outside the axis bounds", () => {
     const { slider } = mount("horizontal");
     act(() => {

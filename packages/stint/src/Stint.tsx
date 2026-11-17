@@ -67,10 +67,16 @@ const EASE_OUT_STRONG = [0.23, 1, 0.32, 1] as const;
 const KEYBOARD_PAGE_MONTHS = 12;
 const SETTLE_ANNOUNCE_MS = 400;
 const DISENGAGE_GRACE_MS = 250;
-/** Width of the edge band that scrolls an overflowing timeline mid-drag. */
-const EDGE_ZONE_PX = 64;
-const EDGE_SCROLL_PX_PER_S = 900;
+/** Edge band that scrolls an overflowing timeline mid-drag. */
+const EDGE_ZONE_PX = 96;
+const EDGE_ZONE_FRACTION = 0.28;
+const EDGE_SCROLL_MIN_PX_PER_S = 280;
+const EDGE_SCROLL_MAX_PX_PER_S = 1100;
 const DRAG_SLOP_PX = 8;
+/** A release faster than this (px/ms) throws the timeline that way. */
+const FLING_MIN_VELOCITY = 0.3;
+const FLING_DECAY_MS = 325;
+const FLING_STALE_MS = 80;
 
 // Layout effects warn during server rendering; the server has nothing to measure.
 const useIsomorphicLayoutEffect =
@@ -427,6 +433,11 @@ function StintTimeline({
     pointerY: 0,
     dragStartX: 0,
     dragMoved: false,
+    lastMoveAt: 0,
+    velocityX: 0,
+    flingVelocity: 0,
+    // Our own scroll position while a drag or throw drives the viewport.
+    scrollPos: null as number | null,
     axisLength: 0,
     scaleTargets: [] as (number | undefined)[],
   });
@@ -554,6 +565,8 @@ function StintTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const settleRef = useRef<(source: StintInputSource) => void>(() => {});
+
   // Aim the cursor at the month under the last known pointer position.
   const aimAtPointer = useCallback(() => {
     const el = rulerRef.current;
@@ -561,9 +574,15 @@ function StintTimeline({
     const c = frameContext.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
+    // The rect already reflects the viewport's scroll position, except while
+    // we drive it: iOS Safari applies those writes late, so correct for lag.
+    const viewport = el.parentElement;
+    const lag =
+      s.scrollPos !== null && viewport
+        ? Math.round(s.scrollPos) - viewport.scrollLeft
+        : 0;
     const fraction = c.horizontal
-      ? // The rect already reflects the viewport's scroll position.
-        (s.pointerX - rect.left) / Math.max(1, rect.width)
+      ? (s.pointerX - (rect.left - lag)) / Math.max(1, rect.width)
       : 1 - (s.pointerY - rect.top) / Math.max(1, rect.height);
     const month = c.axis.min + fraction * c.axis.span;
     s.targetMonth = Math.min(
@@ -581,32 +600,55 @@ function StintTimeline({
     const dt = s.lastFrameAt ? Math.min(64, now - s.lastFrameAt) : 1000 / 60;
     s.lastFrameAt = now;
 
-    // Dragging into an edge of an overflowing timeline scrolls it that way,
-    // faster the deeper the pointer sits. The middle stays a plain scrub.
+    // Middle of the strip is a plain scrub. Dragging into an edge band, or
+    // releasing with speed, moves an overflowing timeline in that direction.
     const viewport = rulerRef.current?.parentElement;
     if (
       viewport &&
       c.horizontal &&
-      s.dragPointerId !== null &&
-      s.dragMoved &&
       viewport.scrollWidth - viewport.clientWidth > 1
     ) {
-      const rect = viewport.getBoundingClientRect();
-      const zone = Math.min(EDGE_ZONE_PX, rect.width * 0.25);
-      const before = zone - (s.pointerX - rect.left);
-      const after = zone - (rect.right - s.pointerX);
-      const depth =
-        before > 0
-          ? -Math.min(1, before / zone)
-          : after > 0
-            ? Math.min(1, after / zone)
-            : 0;
-      if (depth !== 0) {
-        viewport.scrollLeft +=
-          Math.sign(depth) * depth * depth * EDGE_SCROLL_PX_PER_S * (dt / 1000);
-        aimAtPointer();
+      let delta = 0;
+      if (s.dragPointerId !== null && s.dragMoved) {
+        const rect = viewport.getBoundingClientRect();
+        const zone = Math.min(EDGE_ZONE_PX, rect.width * EDGE_ZONE_FRACTION);
+        const before = zone - (s.pointerX - rect.left);
+        const after = zone - (rect.right - s.pointerX);
+        const depth = Math.min(1, Math.max(before, after, 0) / zone);
+        if (depth > 0) {
+          const speed =
+            EDGE_SCROLL_MIN_PX_PER_S +
+            (EDGE_SCROLL_MAX_PX_PER_S - EDGE_SCROLL_MIN_PX_PER_S) * depth;
+          delta = (before > 0 ? -1 : 1) * speed * (dt / 1000);
+        }
+      } else if (s.flingVelocity !== 0) {
+        delta = s.flingVelocity * dt;
+        s.flingVelocity *= Math.exp(-dt / FLING_DECAY_MS);
       }
+      if (delta !== 0) {
+        // Track the position ourselves: iOS Safari scrolls off the main
+        // thread and reports stale values mid-gesture, and rounds to whole px.
+        const max = viewport.scrollWidth - viewport.clientWidth;
+        const from = s.scrollPos ?? viewport.scrollLeft;
+        const next = Math.min(max, Math.max(0, from + delta));
+        const blocked = next === from;
+        s.scrollPos = next;
+        viewport.scrollLeft = Math.round(next);
+        aimAtPointer();
+        if (
+          s.flingVelocity !== 0 &&
+          (blocked || Math.abs(s.flingVelocity) < 0.03)
+        ) {
+          s.flingVelocity = 0;
+          s.scrollPos = null;
+          settleRef.current("pointer");
+        }
+      }
+    } else if (s.flingVelocity !== 0) {
+      s.flingVelocity = 0;
+      settleRef.current("pointer");
     }
+
     // Time-based so the cursor feels the same at 60Hz and 120Hz.
     const lerp = s.reducedMotion ? 1 : 1 - Math.pow(1 - 0.22, dt / (1000 / 60));
     s.currentMonth += (s.targetMonth - s.currentMonth) * lerp;
@@ -889,17 +931,26 @@ function StintTimeline({
     [emit, ensureLoop, syncAllScales],
   );
 
+  settleRef.current = settle;
+
   /* ----- pointer input ----- */
 
   const pointerToTarget = useCallback(
     (event: ReactPointerEvent) => {
       const s = state.current;
-      s.pointerX = event.clientX;
-      s.pointerY = event.clientY;
       // A tap near an edge must not scroll; only a real drag does.
       if (Math.abs(event.clientX - s.dragStartX) > DRAG_SLOP_PX) {
         s.dragMoved = true;
       }
+      const elapsed = event.timeStamp - s.lastMoveAt;
+      if (s.lastMoveAt && elapsed > 0) {
+        const instant = (event.clientX - s.pointerX) / elapsed;
+        s.velocityX =
+          elapsed > FLING_STALE_MS ? instant : s.velocityX * 0.6 + instant * 0.4;
+      }
+      s.lastMoveAt = event.timeStamp;
+      s.pointerX = event.clientX;
+      s.pointerY = event.clientY;
       aimAtPointer();
       ensureLoop();
     },
@@ -930,6 +981,10 @@ function StintTimeline({
       s.lastPointerType = event.pointerType;
       s.dragStartX = event.clientX;
       s.dragMoved = false;
+      s.lastMoveAt = 0;
+      s.velocityX = 0;
+      s.flingVelocity = 0;
+      s.scrollPos = null;
       engage("pointer");
       pointerToTarget(event);
     },
@@ -948,10 +1003,24 @@ function StintTimeline({
       // for the zone leave event.
       if (event.pointerType !== "mouse") {
         s.engagedCount = 0;
-        settle("pointer");
+        const fresh = event.timeStamp - s.lastMoveAt <= FLING_STALE_MS;
+        if (
+          event.type === "pointerup" &&
+          s.dragMoved &&
+          fresh &&
+          !s.reducedMotion &&
+          Math.abs(s.velocityX) >= FLING_MIN_VELOCITY
+        ) {
+          // Keep scrubbing under the lifted finger until the throw runs out.
+          s.flingVelocity = s.velocityX;
+          ensureLoop();
+        } else {
+          s.scrollPos = null;
+          settle("pointer");
+        }
       }
     },
-    [settle],
+    [settle, ensureLoop],
   );
 
   const isTouchLike = (type: string) => type === "touch" || type === "pen";
