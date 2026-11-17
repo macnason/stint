@@ -1,5 +1,12 @@
 # @macworks/stint-cli
 
+## 1.0.0-next.5
+
+### Patch Changes
+
+- Updated dependencies [[`b8a74ed`](https://github.com/macnason/stint/commit/b8a74ed63368776cf3e48e6a214d3e5d3ec6da93)]:
+  - @macworks/stint@1.0.0-next.5
+
 ## 1.0.0-next.4
 
 ### Minor Changes
