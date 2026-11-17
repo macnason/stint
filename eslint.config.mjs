@@ -22,7 +22,11 @@ export default tseslint.config(
   },
   {
     // Only the React component and its hooks touch the DOM.
-    files: ["packages/stint/src/**", "packages/stint/test/**"],
+    files: [
+      "packages/stint/src/**",
+      "packages/stint/test/**",
+      "playground/src/**",
+    ],
     languageOptions: {
       globals: { ...globals.browser },
     },
