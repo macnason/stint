@@ -73,6 +73,9 @@ const EDGE_ZONE_FRACTION = 0.28;
 const EDGE_SCROLL_MIN_PX_PER_S = 280;
 const EDGE_SCROLL_MAX_PX_PER_S = 1100;
 const DRAG_SLOP_PX = 8;
+/** Share of the remaining distance the cursor covers per 60Hz frame. */
+const GLIDE_EASE = 0.22;
+const DRAG_EASE = 0.5;
 /** A release faster than this (px/ms) throws the timeline that way. */
 const FLING_MIN_VELOCITY = 0.3;
 const FLING_DECAY_MS = 325;
@@ -650,7 +653,10 @@ function StintTimeline({
     }
 
     // Time-based so the cursor feels the same at 60Hz and 120Hz.
-    const lerp = s.reducedMotion ? 1 : 1 - Math.pow(1 - 0.22, dt / (1000 / 60));
+    // A finger sits on the cursor, so a drag tracks it tightly; a hovering
+    // mouse and keyboard steps keep the softer glide.
+    const ease = s.dragPointerId !== null ? DRAG_EASE : GLIDE_EASE;
+    const lerp = s.reducedMotion ? 1 : 1 - Math.pow(1 - ease, dt / (1000 / 60));
     s.currentMonth += (s.targetMonth - s.currentMonth) * lerp;
     const monthEpsilon = 0.05 / Math.max(1, s.axisLength / c.axis.span);
     if (Math.abs(s.targetMonth - s.currentMonth) < Math.max(0.01, monthEpsilon)) {

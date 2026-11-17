@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useWebHaptics } from "web-haptics/react";
 
 import {
@@ -9,6 +9,10 @@ import {
 import { designers } from "./designers.js";
 
 const REFERENCE_MONTH = { mode: "fixed", month: "2026-11" } as const;
+
+// `?haptics=off` rules haptics out when chasing a touch problem.
+const HAPTICS =
+  new URLSearchParams(window.location.search).get("haptics") !== "off";
 
 const ORIENTATIONS = [
   { value: "horizontal", label: "Horizontal" },
@@ -54,12 +58,21 @@ export function App() {
   const [orientation, setOrientation] = useState<StintOrientation>("horizontal");
   const [width, setWidth] = useState<(typeof WIDTHS)[number]["value"]>("full");
 
-  // The package only emits events; the host picks the haptics.
+  // The package only emits events; the host picks the haptics. Months pass
+  // far faster than a phone can tick, so tick per year and tap per company.
   const { trigger } = useWebHaptics();
+  const lastYear = useRef("");
   const onFeedback = useCallback<StintFeedbackHandler>(
     (event) => {
-      if (event.type === "month-change") void trigger("selection");
-      else if (event.type === "entry-change") void trigger("medium");
+      if (!HAPTICS) return;
+      if (event.type === "entry-change") {
+        void trigger("medium");
+      } else if (event.type === "month-change") {
+        const year = event.month.slice(0, 4);
+        if (year === lastYear.current) return;
+        lastYear.current = year;
+        void trigger("selection");
+      }
     },
     [trigger],
   );
