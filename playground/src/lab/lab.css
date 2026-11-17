@@ -3,8 +3,14 @@
  * so the shipped component rendered beside it stays untouched.
  */
 
-/* The live readout layer mirrors the readout's own flex column. */
+/* The live readout layer is layout-transparent unless a fix needs a box. */
 .lab-layer {
+  display: contents;
+}
+
+/* As a box, it mirrors the readout's own flex column. */
+.stint[data-lab-readout-swap] .lab-layer,
+.stint[data-lab-reserve-readout] .lab-layer {
   display: flex;
   flex-direction: column;
   align-items: inherit;
@@ -46,12 +52,13 @@
 
 /* ---------- logo-scale: one source of scale ---------- */
 
-.stint[data-lab-logo-scale] .stint__logo {
+/* css-logos supersedes this; never stack both. */
+.stint[data-lab-logo-scale]:not([data-lab-css-logos]) .stint__logo {
   scale: none;
   transform: scale(0.6);
 }
 
-.stint[data-lab-logo-scale] .stint__logo:focus-visible {
+.stint[data-lab-logo-scale]:not([data-lab-css-logos]) .stint__logo:focus-visible {
   scale: none !important;
 }
 

@@ -273,6 +273,12 @@ function Suggestion({
         <dd>{fix.change}</dd>
         <dt>Ref</dt>
         <dd className="ref">{fix.after}</dd>
+        {fix.demo === "none" && (
+          <>
+            <dt>Preview</dt>
+            <dd>None. Code-only; approving it changes nothing on this page.</dd>
+          </>
+        )}
         {fix.demo === "refresh" && refreshRate && (
           <>
             <dt>Display</dt>

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Stint \u2014 a tactile React timeline for presenting career history.",
+  "description": "Stint — a tactile React timeline for presenting career history.",
   "workspaces": [
     "packages/*"
   ],

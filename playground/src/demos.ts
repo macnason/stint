@@ -17,15 +17,15 @@ export interface DemoResult {
 async function sweep(root: HTMLElement): Promise<DemoResult> {
   const slider = root.querySelector<HTMLElement>("[role=slider]");
   if (!slider) return {};
-  slider.focus({ preventScroll: true });
   key(slider, "Home");
-  await wait(120);
+  // The cursor glides there; let it land before measuring.
+  await wait(1200);
   let ruler = top(root, ".stint__ruler");
   let title = top(root, ".stint__company");
   let shift = 0;
   for (let i = 0; i < 80; i++) {
     key(slider, "PageUp");
-    await wait(70);
+    await wait(120);
     const nextRuler = top(root, ".stint__ruler");
     const nextTitle = top(root, ".stint__company");
     shift += Math.abs(nextRuler - ruler) + Math.abs(nextTitle - title);
@@ -33,7 +33,6 @@ async function sweep(root: HTMLElement): Promise<DemoResult> {
     title = nextTitle;
     if (slider.dataset.atNewest !== undefined) break;
   }
-  slider.blur();
   return { metric: `${Math.round(shift)}px layout shift` };
 }
 
@@ -108,14 +107,12 @@ async function follow(root: HTMLElement): Promise<DemoResult> {
   if (!slider) return {};
   const yes = (v: boolean) => (v ? "in view" : "off-screen");
   const onLoad = selectionVisible(root);
-  slider.focus({ preventScroll: true });
   key(slider, "Home");
   await wait(900);
   const afterHome = selectionVisible(root);
   key(slider, "End");
   await wait(900);
   const afterEnd = selectionVisible(root);
-  slider.blur();
   return {
     metric: `load ${yes(onLoad)} · Home ${yes(afterHome)} · End ${yes(afterEnd)}`,
   };
@@ -133,24 +130,20 @@ async function clickLogos(root: HTMLElement, gap: number): Promise<DemoResult> {
 async function edges(root: HTMLElement): Promise<DemoResult> {
   const slider = root.querySelector<HTMLElement>("[role=slider]");
   if (!slider) return {};
-  slider.focus({ preventScroll: true });
   for (const name of ["Home", "PageUp", "End", "PageDown", "End"]) {
     key(slider, name);
     await wait(700);
   }
-  slider.blur();
   return {};
 }
 
 async function travel(root: HTMLElement): Promise<DemoResult> {
   const slider = root.querySelector<HTMLElement>("[role=slider]");
   if (!slider) return {};
-  slider.focus({ preventScroll: true });
   key(slider, "Home");
   await wait(1200);
   key(slider, "End");
   await wait(1200);
-  slider.blur();
   return {};
 }
 
